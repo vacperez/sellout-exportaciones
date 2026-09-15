@@ -113,6 +113,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px;}
 
 <div id="pg-cliente" class="panel">
   <p class="sec">Venta por cliente</p>
+  <p id="cli-caveat" style="font-size:11px;color:#aaa;margin:-4px 0 8px;"></p>
   <div class="chart-wrap">
     <div class="leg" id="leg-cli"><span><span class="ldot" style="background:#7f9cc4;"></span>Año anterior</span><span><span class="ldot" style="background:#1f3a5f;"></span>Año actual</span></div>
     <div style="position:relative;height:440px;"><canvas id="c-cli" role="img" aria-label="Venta por cliente"></canvas></div>
@@ -186,7 +187,36 @@ function getMesesComp(){
 
 function getVentaAnio(anio,mc){
   const meses=mc||getMesesComp();
-  return Math.round((DATA.mensual[anio]||[]).reduce((s,v,i)=>s+(meses.includes(MESES[i])?v:0),0));
+  return Math.round(getSerieMensual(anio).reduce((s,v,i)=>s+(meses.includes(MESES[i])?v:0),0));
+}
+// serie mensual (12 valores) respetando el filtro de País: si hay países seleccionados
+// de forma parcial, suma solo esos países usando el desglose real mensual_paises.
+function getSerieMensual(anio){
+  if(selPaises.size===0)return MESES.map(()=>0);
+  if(selPaises.size===PAISES.length)return DATA.mensual[anio]||MESES.map(()=>0);
+  const acc=MESES.map(()=>0);
+  PAISES.filter(p=>selPaises.has(p)).forEach(p=>{
+    const serie=DATA.mensual_paises?.[p]?.[anio];
+    if(serie)serie.forEach((v,i)=>acc[i]+=v);
+  });
+  return acc;
+}
+// texto del filtro de país activo, o null si están todos seleccionados (sin filtro)
+function paisFiltroLabel(){
+  if(selPaises.size===0)return 'sin país seleccionado';
+  if(selPaises.size===PAISES.length)return null;
+  const arr=PAISES.filter(p=>selPaises.has(p));
+  return arr.length===1?arr[0]:`${arr.length} países`;
+}
+// venta últimos 12 meses (respeta filtro de país)
+function getLTM(){
+  const idx=MESES.indexOf(DATA.ultimo_mes);
+  const serieAct=getSerieMensual(DATA.ultimo_anio);
+  const seriePrev=getSerieMensual(DATA.ultimo_anio-1);
+  let total=0;
+  for(let i=idx+1;i<12;i++)total+=seriePrev[i]||0;
+  for(let i=0;i<=idx;i++)total+=serieAct[i]||0;
+  return Math.round(total);
 }
 function getVentaPais(pais,anio,mc){
   const meses=mc||getMesesComp();
@@ -265,7 +295,8 @@ function refreshIntra(anio){
   const mc=getMesesIntra(anio);
   const tiene=anio===DATA.ultimo_anio;
   const per=mc.length===12?'año completo':(mc.length?`${MESES_S[MESES.indexOf(mc[0])]}–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`:'sin datos');
-  document.getElementById('rng-label').textContent=`${anio} · ${per}`;
+  const pLabel=paisFiltroLabel();
+  document.getElementById('rng-label').textContent=`${anio} · ${per}${pLabel?' · '+pLabel:''}`;
 
   if(tiene&&selMeses.size>mc.length){
     document.getElementById('warn-parcial').style.display='block';
@@ -274,11 +305,15 @@ function refreshIntra(anio){
     document.getElementById('warn-parcial').style.display='none';
   }
 
-  document.getElementById('sec-anio-t').textContent=`Venta por mes — ${anio}`;
-  document.getElementById('sec-varA-t').textContent='Variación % mes a mes';
-  document.getElementById('sec-var-t').textContent=`Variación % mes a mes — ${anio}`;
+  const cliCaveatEl=document.getElementById('cli-caveat');
+  if(cliCaveatEl)cliCaveatEl.textContent=pLabel?`Nota: los totales por cliente son globales — aún no están cruzados por país.`:'';
 
-  const valores=mc.map(m=>({m,mi:MESES.indexOf(m),v:(DATA.mensual[anio]||[])[MESES.indexOf(m)]||0}));
+  document.getElementById('sec-anio-t').textContent=`Venta por mes — ${anio}${pLabel?' — '+pLabel:''}`;
+  document.getElementById('sec-varA-t').textContent='Variación % mes a mes'+(pLabel?' — '+pLabel:'');
+  document.getElementById('sec-var-t').textContent=`Variación % mes a mes — ${anio}${pLabel?' — '+pLabel:''}`;
+
+  const serie=getSerieMensual(anio);
+  const valores=mc.map(m=>({m,mi:MESES.indexOf(m),v:serie[MESES.indexOf(m)]||0}));
   const total=valores.reduce((s,x)=>s+x.v,0);
   const promedio=valores.length?total/valores.length:0;
   const mejor=valores.length?valores.reduce((a,b)=>b.v>a.v?b:a):null;
@@ -300,8 +335,8 @@ function refreshIntra(anio){
   upd('c-varA',{type:'bar',data:{labels:valores.map(x=>MESES_S[x.mi]),datasets:[{data:varMes,backgroundColor:varMes.map(v=>v===null?'transparent':v>=0?'#0ca30c':'#d03b3b'),borderRadius:4}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!==null?sgn(c.parsed.y)+c.parsed.y+'%':null}}},scales:{x:{ticks:{color:'#52514e'},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>sgn(v)+v+'%'},grid:{color:'#f0efec'}}}}});
 
-  document.getElementById('leg-mens').innerHTML=`<span><span class="ldot" style="background:#1f3a5f;"></span>${anio}</span>`;
-  upd('c-mens',{type:'line',data:{labels:MESES_S,datasets:[{label:String(anio),data:MESES.map((m,mi)=>mc.includes(m)?((DATA.mensual[anio]||[])[mi]||null):null),borderColor:'#1f3a5f',pointBackgroundColor:'#1f3a5f',borderWidth:2,pointRadius:3,tension:0.3,fill:false}]},
+  document.getElementById('leg-mens').innerHTML=`<span><span class="ldot" style="background:#1f3a5f;"></span>${anio}${pLabel?' · '+pLabel:''}</span>`;
+  upd('c-mens',{type:'line',data:{labels:MESES_S,datasets:[{label:String(anio),data:MESES.map((m,mi)=>mc.includes(m)?(serie[mi]||null):null),borderColor:'#1f3a5f',pointBackgroundColor:'#1f3a5f',borderWidth:2,pointRadius:3,tension:0.3,fill:false}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y?$k(c.parsed.y):null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
 
   const pPaises=PAISES.filter(p=>selPaises.has(p));
@@ -316,9 +351,9 @@ function refreshIntra(anio){
   upd('c-cli',{type:'bar',data:{labels:CLIENTES,datasets:[{label:String(anio),data:cVals,backgroundColor:'#1f3a5f',borderRadius:3}]},
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>$k(c.parsed.x)}}},scales:{x:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}},y:{ticks:{color:'#52514e'},grid:{display:false}}}}});
 
-  document.getElementById('leg-ytd').innerHTML=`<span><span class="ldot" style="background:#1f3a5f;"></span>${anio}</span>`;
+  document.getElementById('leg-ytd').innerHTML=`<span><span class="ldot" style="background:#1f3a5f;"></span>${anio}${pLabel?' · '+pLabel:''}</span>`;
   let acc=0;
-  const ytdData=MESES_S.map((_,mi)=>{if(!mc.includes(MESES[mi]))return null;acc+=((DATA.mensual[anio]||[])[mi]||0);return Math.round(acc)||null;});
+  const ytdData=MESES_S.map((_,mi)=>{if(!mc.includes(MESES[mi]))return null;acc+=(serie[mi]||0);return Math.round(acc)||null;});
   upd('c-ytd',{type:'line',data:{labels:MESES_S,datasets:[{label:String(anio),data:ytdData,borderColor:'#1f3a5f',pointBackgroundColor:'#1f3a5f',borderWidth:2,pointRadius:3,tension:0.3,fill:false}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y?$k(c.parsed.y):null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
 
@@ -354,11 +389,14 @@ function genInsightIntra(anio,valores,total,promedio,mejor,peor,trendPct,per,pPa
 /* ---------- MODO INTER-AÑO (dos o más años seleccionados) ---------- */
 
 function refreshInter(anios){
-  document.getElementById('sec-anio-t').textContent='Venta total por año';
-  document.getElementById('sec-varA-t').textContent='Variación % año a año';
-  document.getElementById('sec-var-t').textContent='Variación % mensual — año actual vs anterior';
+  const pLabel=paisFiltroLabel();
+  document.getElementById('sec-anio-t').textContent='Venta total por año'+(pLabel?' — '+pLabel:'');
+  document.getElementById('sec-varA-t').textContent='Variación % año a año'+(pLabel?' — '+pLabel:'');
+  document.getElementById('sec-var-t').textContent='Variación % mensual — año actual vs anterior'+(pLabel?' — '+pLabel:'');
   document.getElementById('leg-pais').innerHTML=LEG_INTER;
   document.getElementById('leg-cli').innerHTML=LEG_INTER;
+  const cliCaveatEl=document.getElementById('cli-caveat');
+  if(cliCaveatEl)cliCaveatEl.textContent=pLabel?`Nota: los totales por cliente son globales — aún no están cruzados por país.`:'';
 
   const anioB=anios[anios.length-1],anioA=anios.length>=2?anios[anios.length-2]:null;
   const tiene2026=anios.includes(DATA.ultimo_anio);
@@ -368,7 +406,7 @@ function refreshInter(anios){
   const per=mc.length===12?'año completo':`ene–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`;
   document.getElementById('warn-parcial').style.display=tiene2026&&selMeses.size>mc.length?'block':'none';
   document.getElementById('warn-txt').innerHTML=`<strong>Comparación parcial:</strong> ${DATA.ultimo_anio} solo tiene datos hasta ${DATA.ultimo_mes.toLowerCase()}. Se compara solo ese período en ambos años.`;
-  document.getElementById('rng-label').textContent=per;
+  document.getElementById('rng-label').textContent=per+(pLabel?' · '+pLabel:'');
 
   const ytd2026=getVentaAnio(DATA.ultimo_anio,mc);
   const ytd2025=getVentaAnio(DATA.ultimo_anio-1,mc);
@@ -378,7 +416,7 @@ function refreshInter(anios){
     <div class="kpi"><p class="kpi-l">${anioB||'—'} · ${per}</p><p class="kpi-v">${$k(vB)}</p><p class="kpi-s ${varPct===null?'':varPct>=0?'pos':'neg'}">${varPct!==null?sgn(varPct)+varPct.toFixed(1)+'% vs '+anioA:'sin comparación'}</p></div>
     <div class="kpi"><p class="kpi-l">Año anterior (${anioA||'—'})</p><p class="kpi-v">${$k(vA)}</p><p class="kpi-s">${per}</p></div>
     <div class="kpi"><p class="kpi-l">YTD ${DATA.ultimo_anio} (${per})</p><p class="kpi-v">${$k(ytd2026)}</p><p class="kpi-s ${ytdVar>=0?'pos':'neg'}">${sgn(ytdVar)}${ytdVar?.toFixed(1)}% vs ${DATA.ultimo_anio-1}</p></div>
-    <div class="kpi"><p class="kpi-l">LTM</p><p class="kpi-v">$2.69M</p><p class="kpi-s">Sep ${DATA.ultimo_anio-1}–${DATA.ultimo_mes.toLowerCase()} ${DATA.ultimo_anio}</p></div>
+    <div class="kpi"><p class="kpi-l">LTM</p><p class="kpi-v">${$k(getLTM())}</p><p class="kpi-s">Sep ${DATA.ultimo_anio-1}–${DATA.ultimo_mes.toLowerCase()} ${DATA.ultimo_anio}</p></div>
   `;
 
   const mensClrs=["#b5d4f4","#85b7eb","#378add","#185fa5","#7f9cc4","#1f3a5f"];
@@ -391,8 +429,8 @@ function refreshInter(anios){
   upd('c-varA',{type:'bar',data:{labels:anios.map(String),datasets:[{data:varAnio,backgroundColor:varAnio.map(v=>v===null?'transparent':v>=0?'#0ca30c':'#d03b3b'),borderRadius:4}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!==null?sgn(c.parsed.y)+c.parsed.y+'%':null}}},scales:{x:{ticks:{color:'#52514e'},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>sgn(v)+v+'%'},grid:{color:'#f0efec'}}}}});
 
-  const mensDS=anios.map((a,i)=>({label:String(a),data:MESES.map((m,mi)=>selMeses.has(m)?((DATA.mensual[a]||[])[mi]||null):null),borderColor:mensClrs[i]||'#7f9cc4',pointBackgroundColor:mensClrs[i]||'#7f9cc4',borderWidth:2,pointRadius:3,tension:0.3,fill:false}));
-  document.getElementById('leg-mens').innerHTML=anios.map((a,i)=>`<span><span class="ldot" style="background:${mensClrs[i]}"></span>${a}</span>`).join('');
+  const mensDS=anios.map((a,i)=>({label:String(a),data:MESES.map((m,mi)=>selMeses.has(m)?(getSerieMensual(a)[mi]||null):null),borderColor:mensClrs[i]||'#7f9cc4',pointBackgroundColor:mensClrs[i]||'#7f9cc4',borderWidth:2,pointRadius:3,tension:0.3,fill:false}));
+  document.getElementById('leg-mens').innerHTML=anios.map((a,i)=>`<span><span class="ldot" style="background:${mensClrs[i]}"></span>${a}</span>`).join('')+(pLabel?` <span style="color:#aaa;">· ${pLabel}</span>`:'');
   upd('c-mens',{type:'line',data:{labels:MESES_S,datasets:mensDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y?`${c.dataset.label}: ${$k(c.parsed.y)}`:null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
 
   const pPaises=PAISES.filter(p=>selPaises.has(p));
@@ -411,11 +449,12 @@ function refreshInter(anios){
   if(anioB&&CLIENTES.some(c=>getVentaCli(c,anioB,mc)>0))cDS.push({label:String(anioB),data:CLIENTES.map(c=>getVentaCli(c,anioB,mc)),backgroundColor:'#1f3a5f',borderRadius:3});
   upd('c-cli',{type:'bar',data:{labels:CLIENTES,datasets:cDS},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${$k(c.parsed.x)}`}}},scales:{x:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}},y:{ticks:{color:'#52514e'},grid:{display:false}}}}});
 
-  const ytdDS=anios.map((a,i)=>{let acc=0;return{label:String(a),data:MESES_S.map((_,mi)=>{if(!selMeses.has(MESES[mi]))return null;acc+=((DATA.mensual[a]||[])[mi]||0);return Math.round(acc)||null;}),borderColor:mensClrs[i]||'#7f9cc4',pointBackgroundColor:mensClrs[i]||'#7f9cc4',borderWidth:2,pointRadius:3,tension:0.3,fill:false};});
-  document.getElementById('leg-ytd').innerHTML=anios.map((a,i)=>`<span><span class="ldot" style="background:${mensClrs[i]}"></span>${a}</span>`).join('');
+  const ytdDS=anios.map((a,i)=>{let acc=0;const serie=getSerieMensual(a);return{label:String(a),data:MESES_S.map((_,mi)=>{if(!selMeses.has(MESES[mi]))return null;acc+=(serie[mi]||0);return Math.round(acc)||null;}),borderColor:mensClrs[i]||'#7f9cc4',pointBackgroundColor:mensClrs[i]||'#7f9cc4',borderWidth:2,pointRadius:3,tension:0.3,fill:false};});
+  document.getElementById('leg-ytd').innerHTML=anios.map((a,i)=>`<span><span class="ldot" style="background:${mensClrs[i]}"></span>${a}</span>`).join('')+(pLabel?` <span style="color:#aaa;">· ${pLabel}</span>`:'');
   upd('c-ytd',{type:'line',data:{labels:MESES_S,datasets:ytdDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y?`${c.dataset.label}: ${$k(c.parsed.y)}`:null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
 
-  const vm=anioA&&anioB?MESES_S.map((_,mi)=>{const a=(DATA.mensual[anioA]||[])[mi]||0,b=(DATA.mensual[anioB]||[])[mi]||0;if(!a||!selMeses.has(MESES[mi]))return null;return parseFloat((pct(a,b)||0).toFixed(1));}):[];
+  const serieA=anioA?getSerieMensual(anioA):null,serieB=anioB?getSerieMensual(anioB):null;
+  const vm=anioA&&anioB?MESES_S.map((_,mi)=>{const a=serieA[mi]||0,b=serieB[mi]||0;if(!a||!selMeses.has(MESES[mi]))return null;return parseFloat((pct(a,b)||0).toFixed(1));}):[];
   upd('c-var',{type:'bar',data:{labels:MESES_S,datasets:[{data:vm,backgroundColor:vm.map(v=>v===null?'transparent':v>=0?'#0ca30c':'#d03b3b'),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!==null?sgn(c.parsed.y)+c.parsed.y+'%':null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>sgn(v)+v+'%'},grid:{color:'#f0efec'},afterDataLimits:s=>{s.min=Math.min(s.min,-10);s.max=Math.max(s.max,10);}}}}});
 
   genInsightInter(anios,anioA,anioB,mc);
@@ -429,7 +468,8 @@ function genInsightInter(anios,anioA,anioB,mc){
   const vars=anios.map((a,i)=>{if(!i)return null;const p=pct(getVentaAnio(anios[i-1],mc),getVentaAnio(a,mc));return{a,p};}).filter(Boolean);
   if(vars.length){const mj=vars.reduce((a,b)=>a.p>b.p?a:b),pr=vars.reduce((a,b)=>a.p<b.p?a:b);ins('ins-varA',`Mayor crecimiento: ${mj.a} (${sgn(mj.p)}${mj.p.toFixed(1)}%). ${pr.p<0?`Caída en ${pr.a} (${pr.p.toFixed(1)}%).`:'Todos los años muestran crecimiento.'}`);}
   if(anioA&&anioB){
-    const mv=mc.map(m=>{const mi=MESES.indexOf(m),a=(DATA.mensual[anioA]||[])[mi]||0,b=(DATA.mensual[anioB]||[])[mi]||0;return a?{m:MESES_S[mi],p:pct(a,b)}:null;}).filter(Boolean);
+    const sA=getSerieMensual(anioA),sB=getSerieMensual(anioB);
+    const mv=mc.map(m=>{const mi=MESES.indexOf(m),a=sA[mi]||0,b=sB[mi]||0;return a?{m:MESES_S[mi],p:pct(a,b)}:null;}).filter(Boolean);
     const vd=mv.filter(x=>x.p>=0),ro=mv.filter(x=>x.p<0);
     const mj=mv.reduce((a,b)=>a.p>b.p?a:b,mv[0]),pr=mv.reduce((a,b)=>a.p<b.p?a:b,mv[0]);
     ins('ins-mens',`${vd.length} de ${mv.length} meses en ${anioB} superaron a ${anioA}. Mejor: ${mj?.m} (${sgn(mj?.p)}${mj?.p.toFixed(1)}%), peor: ${pr?.m} (${pr?.p.toFixed(1)}%).`);
@@ -452,14 +492,17 @@ function buildPromptInter(tipo,anios){
   const mc=getMesesComp();
   const per=mc.length===12?'año completo':`ene–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`;
   const vB=getVentaAnio(anioB,mc),vA=anioA?getVentaAnio(anioA,mc):0;
+  const sA=anioA?getSerieMensual(anioA):[],sB=getSerieMensual(anioB);
+  const pLabel=paisFiltroLabel();
+  const ctx=pLabel?` (filtrado a ${pLabel})`:'';
   const prompts={
-    anio:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por año en ${per}: ${anios.map(a=>a+': '+$k(getVentaAnio(a,mc))).join(', ')}. Qué muestra la tendencia.`,
-    varA:`Analista de exportaciones. Máximo 2 oraciones en español. Variación % año a año: ${anios.map((a,i)=>i===0?null:`${a}: ${(pct(getVentaAnio(anios[i-1],mc),getVentaAnio(a,mc))||0).toFixed(1)}%`).filter(Boolean).join(', ')}. Qué años destacan.`,
-    mens:`Analista de exportaciones. Máximo 2 oraciones en español. Tendencia mensual ${anioA} vs ${anioB} en ${per}: ${mc.map(m=>{const mi=MESES.indexOf(m),a=(DATA.mensual[anioA]||[])[mi]||0,b=(DATA.mensual[anioB]||[])[mi]||0;return a?MESES_S[mi]+': '+(pct(a,b)||0).toFixed(1)+'%':null;}).filter(Boolean).join(', ')}. Qué meses fueron mejor y peor.`,
+    anio:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por año en ${per}${ctx}: ${anios.map(a=>a+': '+$k(getVentaAnio(a,mc))).join(', ')}. Qué muestra la tendencia.`,
+    varA:`Analista de exportaciones. Máximo 2 oraciones en español. Variación % año a año${ctx}: ${anios.map((a,i)=>i===0?null:`${a}: ${(pct(getVentaAnio(anios[i-1],mc),getVentaAnio(a,mc))||0).toFixed(1)}%`).filter(Boolean).join(', ')}. Qué años destacan.`,
+    mens:`Analista de exportaciones. Máximo 2 oraciones en español. Tendencia mensual ${anioA} vs ${anioB} en ${per}${ctx}: ${mc.map(m=>{const mi=MESES.indexOf(m),a=sA[mi]||0,b=sB[mi]||0;return a?MESES_S[mi]+': '+(pct(a,b)||0).toFixed(1)+'%':null;}).filter(Boolean).join(', ')}. Qué meses fueron mejor y peor.`,
     pais:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por país ${anioA} vs ${anioB}: ${PAISES.filter(p=>selPaises.has(p)).map(p=>`${p}: ${$k(getVentaPais(p,anioB,mc))} (${(pct(getVentaPais(p,anioA,mc),getVentaPais(p,anioB,mc))||0).toFixed(1)}%)`).join(', ')}. Destacar ganadores y perdedores.`,
     cli:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por cliente ${anioA} vs ${anioB}: ${CLIENTES.map(c=>{const a=getVentaCli(c,anioA,mc),b=getVentaCli(c,anioB,mc);return b>0||a>0?`${c}: ${$k(b)} (${a>0?(pct(a,b)||0).toFixed(1)+'%':'nuevo'})`:null;}).filter(Boolean).join(', ')}. Destacar riesgos de concentración.`,
-    ytd:`Analista de exportaciones. Máximo 2 oraciones en español. YTD ${per}: ${anioB}=${$k(vB)}, ${anioA}=${$k(vA)}, variación=${(pct(vA,vB)||0).toFixed(1)}%. Cómo viene el año.`,
-    var:`Analista de exportaciones. Máximo 2 oraciones en español. Variación % mensual ${anioB} vs ${anioA}: ${mc.map(m=>{const mi=MESES.indexOf(m),a=(DATA.mensual[anioA]||[])[mi]||0,b=(DATA.mensual[anioB]||[])[mi]||0;return a?MESES_S[mi]+': '+(pct(a,b)||0).toFixed(1)+'%':null;}).filter(Boolean).join(', ')}. Explicar que barras rojas son comparaciones mensuales, no que el año esté mal — YTD sigue en ${(pct(vA,vB)||0).toFixed(1)}%.`
+    ytd:`Analista de exportaciones. Máximo 2 oraciones en español. YTD ${per}${ctx}: ${anioB}=${$k(vB)}, ${anioA}=${$k(vA)}, variación=${(pct(vA,vB)||0).toFixed(1)}%. Cómo viene el año.`,
+    var:`Analista de exportaciones. Máximo 2 oraciones en español. Variación % mensual ${anioB} vs ${anioA}${ctx}: ${mc.map(m=>{const mi=MESES.indexOf(m),a=sA[mi]||0,b=sB[mi]||0;return a?MESES_S[mi]+': '+(pct(a,b)||0).toFixed(1)+'%':null;}).filter(Boolean).join(', ')}. Explicar que barras rojas son comparaciones mensuales, no que el año esté mal — YTD sigue en ${(pct(vA,vB)||0).toFixed(1)}%.`
   };
   return prompts[tipo];
 }
@@ -467,8 +510,10 @@ function buildPromptInter(tipo,anios){
 function buildPromptIntra(tipo,anio){
   const mc=getMesesIntra(anio);
   const per=mc.length===12?'año completo':(mc.length?`${MESES_S[MESES.indexOf(mc[0])]}–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`:'sin datos');
-  const valores=mc.map(m=>{const mi=MESES.indexOf(m);return{m:MESES_S[mi],v:(DATA.mensual[anio]||[])[mi]||0};});
-  const base=`Analista de exportaciones. Máximo 2 oraciones en español. Año ${anio}, ${per}. Venta mensual: ${valores.map(x=>x.m+': '+$k(x.v)).join(', ')}.`;
+  const serie=getSerieMensual(anio);
+  const valores=mc.map(m=>{const mi=MESES.indexOf(m);return{m:MESES_S[mi],v:serie[mi]||0};});
+  const pLabel=paisFiltroLabel();
+  const base=`Analista de exportaciones. Máximo 2 oraciones en español. Año ${anio}, ${per}${pLabel?` (filtrado a ${pLabel})`:''}. Venta mensual: ${valores.map(x=>x.m+': '+$k(x.v)).join(', ')}.`;
   const pPaises=PAISES.filter(p=>selPaises.has(p));
   const prompts={
     anio:`${base} Describe cómo fue evolucionando el año mes a mes.`,
