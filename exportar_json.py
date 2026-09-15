@@ -31,6 +31,14 @@ pais_d = {}
 for pais in sorted(df["PAIS"].dropna().unique()):
     pais_d[pais] = {int(a): round(df[(df["PAIS"]==pais)&(df["AÑO"]==a)]["SELL OUT"].sum(), 2) for a in anios}
 
+# Desglose mensual real por país (para ver evolución mes a mes de un país específico)
+mensual_pais_d = {}
+for pais in sorted(df["PAIS"].dropna().unique()):
+    mensual_pais_d[pais] = {
+        int(a): [round(df[(df["PAIS"]==pais)&(df["AÑO"]==a)&(df["MES"]==m)]["SELL OUT"].sum(), 2) for m in MESES]
+        for a in anios
+    }
+
 NOMBRES_MAP = {
     "FERRETERIA ESPINOZA S.A.": "F. Espinoza",
     "DISTRIBUIDORA EL PACIFICO S.A.": "El Pacífico",
@@ -48,6 +56,14 @@ cli_d = {}
 for nombre, alias in NOMBRES_MAP.items():
     cli_d[alias] = {int(a): round(df[(df["NOMBRE"]==nombre)&(df["AÑO"]==a)]["SELL OUT"].sum(), 2) for a in anios}
 
+# Desglose mensual real por cliente (para ver evolución mes a mes de un cliente específico)
+mensual_cli_d = {}
+for nombre, alias in NOMBRES_MAP.items():
+    mensual_cli_d[alias] = {
+        int(a): [round(df[(df["NOMBRE"]==nombre)&(df["AÑO"]==a)&(df["MES"]==m)]["SELL OUT"].sum(), 2) for m in MESES]
+        for a in anios
+    }
+
 meses_con_dato_ultimo_anio = [m for m in MESES if df[(df["AÑO"]==max(anios))&(df["MES"]==m)]["SELL OUT"].sum() > 0]
 ultimo_mes = meses_con_dato_ultimo_anio[-1] if meses_con_dato_ultimo_anio else "ENERO"
 
@@ -57,7 +73,9 @@ data = {
     "ultimo_anio": int(max(anios)),
     "mensual": mensual,
     "paises": pais_d,
-    "clientes": cli_d
+    "clientes": cli_d,
+    "mensual_paises": mensual_pais_d,
+    "mensual_clientes": mensual_cli_d
 }
 
 out = Path("data/sellout.json")
