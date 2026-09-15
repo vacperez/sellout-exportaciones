@@ -11,6 +11,11 @@ exportar_json.py    → script para actualizar datos desde Excel
 vercel.json         → configuración de Vercel
 ```
 
+## Estructura de data/sellout.json
+- `mensual`: venta total (todos los países/clientes) por año, 12 valores mensuales.
+- `paises`, `clientes`: total **anual** por país / cliente (para el gráfico de participación).
+- `mensual_paises`, `mensual_clientes`: desglose **mensual real** por país / cliente — lo usa el dashboard para filtrar por mes con exactitud cuando se selecciona un solo año.
+
 ## Flujo mensual
 1. Agregar datos al Excel con el script de limpieza (limpiar_bbdd_exportaciones.py)
 2. Ejecutar: `python exportar_json.py`
