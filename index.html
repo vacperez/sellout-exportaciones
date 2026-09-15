@@ -18,6 +18,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px;}
 .pos{color:#0ca30c;}.neg{color:#d03b3b;}
 .filters{background:#fff;border-radius:10px;border:1px solid #e1e0d9;padding:14px 16px;margin-bottom:20px;}
 .f-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#52514e;margin-bottom:10px;}
+.f-hint{font-size:10px;color:#aaa;margin-top:10px;}
 .f-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
 .f-lbl{font-size:11px;color:#888;margin-bottom:5px;}
 .chip-wrap{display:flex;flex-wrap:wrap;gap:4px;}
@@ -54,7 +55,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px;}
 <p class="sub">Dashboard · Actualizado: <span id="fecha-act"></span></p>
 
 <div id="warn-parcial" class="warn-box" style="display:none;">
-  ⚠️ <strong>Comparación parcial:</strong> 2026 solo tiene datos hasta <span id="ultimo-mes-txt"></span>. Se compara solo ese período en ambos años.
+  ⚠️ <span id="warn-txt"></span>
 </div>
 
 <div class="filters">
@@ -64,6 +65,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px;}
     <div><p class="f-lbl">País</p><div class="chip-wrap" id="f-pais"></div></div>
     <div><p class="f-lbl">Mes</p><div class="chip-wrap" id="f-mes"></div></div>
   </div>
+  <p class="f-hint">Selecciona 1 año para ver su evolución mes a mes · selecciona 2 o más para comparar años entre sí.</p>
 </div>
 
 <div class="kpi-row" id="kpi-row"></div>
@@ -78,12 +80,12 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px;}
 <div id="pg-resumen" class="panel vis">
   <div class="grid2">
     <div>
-      <p class="sec">Venta total por año</p>
+      <p class="sec" id="sec-anio-t">Venta total por año</p>
       <div class="chart-wrap"><div style="position:relative;height:220px;"><canvas id="c-anio" role="img" aria-label="Venta por año"></canvas></div></div>
       <div class="insight-box"><span class="insight-icon">💡</span><span class="insight-text" id="ins-anio"></span><button class="insight-btn" id="btn-anio" onclick="genInsight('anio')">↺ IA</button></div>
     </div>
     <div>
-      <p class="sec">Variación % año a año</p>
+      <p class="sec" id="sec-varA-t">Variación % año a año</p>
       <div class="chart-wrap"><div style="position:relative;height:220px;"><canvas id="c-varA" role="img" aria-label="Variación anual"></canvas></div></div>
       <div class="insight-box"><span class="insight-icon">💡</span><span class="insight-text" id="ins-varA"></span><button class="insight-btn" id="btn-varA" onclick="genInsight('varA')">↺ IA</button></div>
     </div>
@@ -99,7 +101,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px;}
 <div id="pg-pais" class="panel">
   <p class="sec">Venta por país</p>
   <div class="chart-wrap">
-    <div class="leg"><span><span class="ldot" style="background:#7f9cc4;"></span>Año anterior</span><span><span class="ldot" style="background:#1f3a5f;"></span>Año actual</span></div>
+    <div class="leg" id="leg-pais"><span><span class="ldot" style="background:#7f9cc4;"></span>Año anterior</span><span><span class="ldot" style="background:#1f3a5f;"></span>Año actual</span></div>
     <div style="position:relative;height:320px;"><canvas id="c-pais" role="img" aria-label="Venta por país"></canvas></div>
   </div>
   <div class="insight-box"><span class="insight-icon">💡</span><span class="insight-text" id="ins-pais"></span><button class="insight-btn" id="btn-pais" onclick="genInsight('pais')">↺ IA</button></div>
@@ -112,7 +114,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px;}
 <div id="pg-cliente" class="panel">
   <p class="sec">Venta por cliente</p>
   <div class="chart-wrap">
-    <div class="leg"><span><span class="ldot" style="background:#7f9cc4;"></span>Año anterior</span><span><span class="ldot" style="background:#1f3a5f;"></span>Año actual</span></div>
+    <div class="leg" id="leg-cli"><span><span class="ldot" style="background:#7f9cc4;"></span>Año anterior</span><span><span class="ldot" style="background:#1f3a5f;"></span>Año actual</span></div>
     <div style="position:relative;height:440px;"><canvas id="c-cli" role="img" aria-label="Venta por cliente"></canvas></div>
   </div>
   <div class="insight-box"><span class="insight-icon">💡</span><span class="insight-text" id="ins-cli"></span><button class="insight-btn" id="btn-cli" onclick="genInsight('cli')">↺ IA</button></div>
@@ -125,7 +127,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px;}
     <div style="position:relative;height:240px;"><canvas id="c-ytd" role="img" aria-label="YTD acumulado"></canvas></div>
   </div>
   <div class="insight-box"><span class="insight-icon">💡</span><span class="insight-text" id="ins-ytd"></span><button class="insight-btn" id="btn-ytd" onclick="genInsight('ytd')">↺ IA</button></div>
-  <p class="sec">Variación % mensual — año actual vs anterior</p>
+  <p class="sec" id="sec-var-t">Variación % mensual — año actual vs anterior</p>
   <div class="chart-wrap">
     <div style="position:relative;height:200px;"><canvas id="c-var" role="img" aria-label="Variación mensual"></canvas></div>
   </div>
@@ -138,6 +140,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px;}
 const MESES=["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
 const MESES_S=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const PIE_COLS=["#2a78d6","#eb6834","#1baf7a","#eda100","#e87ba4","#008300","#6250d6"];
+const LEG_INTER='<span><span class="ldot" style="background:#7f9cc4;"></span>Año anterior</span><span><span class="ldot" style="background:#1f3a5f;"></span>Año actual</span>';
 
 let DATA={}, ANIOS=[], PAISES=[], CLIENTES=[], MESES_CON_DATO=new Set();
 let selAnios=new Set(), selPaises=new Set(), selMeses=new Set(MESES);
@@ -150,14 +153,12 @@ async function init(){
     ANIOS=Object.keys(DATA.mensual).map(Number).sort();
     PAISES=Object.keys(DATA.paises).sort();
     CLIENTES=Object.keys(DATA.clientes);
-    const ultimoAnio=DATA.ultimo_anio;
     const ultimoMesIdx=MESES.indexOf(DATA.ultimo_mes);
     MESES_CON_DATO=new Set(MESES.slice(0,ultimoMesIdx+1));
     selAnios=new Set([ANIOS[ANIOS.length-2],ANIOS[ANIOS.length-1]].filter(Boolean));
     selPaises=new Set(PAISES);
     selMeses=new Set(MESES);
     document.getElementById('fecha-act').textContent=DATA.ultima_actualizacion;
-    document.getElementById('ultimo-mes-txt').textContent=DATA.ultimo_mes.toLowerCase()+' '+ultimoAnio;
     document.getElementById('app-loading').style.display='none';
     document.getElementById('app').style.display='block';
     refresh();
@@ -169,10 +170,18 @@ async function init(){
 function $k(v){if(v>=1000000)return'$'+(v/1000000).toFixed(2)+'M';if(v>=1000)return'$'+(v/1000).toFixed(0)+'K';return'$'+Math.round(v);}
 function sgn(v){return v>=0?'+':'';}
 function pct(a,b){return a?((b-a)/a*100):null;}
+function upd(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),cfg);}
+function ins(id,txt){const el=document.getElementById(id);if(el)el.textContent=txt;}
 
+// meses considerados para un solo año (respeta filtro de mes y, si es el año en curso, corta en el último mes con dato)
+function getMesesIntra(anio){
+  const tiene=anio===DATA.ultimo_anio;
+  return MESES.filter(m=>selMeses.has(m)&&(!tiene||MESES_CON_DATO.has(m)));
+}
+// meses considerados para comparación entre años (modo inter)
 function getMesesComp(){
   const tiene2026=ANIOS.filter(a=>selAnios.has(a)).includes(DATA.ultimo_anio);
-  return [...selMeses].filter(m=>!tiene2026||MESES_CON_DATO.has(m));
+  return MESES.filter(m=>selMeses.has(m)&&(!tiene2026||MESES_CON_DATO.has(m)));
 }
 
 function getVentaAnio(anio,mc){
@@ -187,103 +196,164 @@ function getVentaCli(cli,anio,mc){
   const meses=mc||getMesesComp();
   return Math.round((DATA.clientes[cli]?.[anio]||0)*meses.length/12);
 }
-function upd(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),cfg);}
 
-function buildChips(id,items,sel,isNum){
+function buildChips(id,items,sel,isNum,minOne){
   const c=document.getElementById(id);c.innerHTML='';
   const all=document.createElement('button');
   all.className='chip'+(sel.size===items.length?' on':'');
   all.textContent='Todo';
-  all.onclick=()=>{if(sel.size===items.length)sel.clear();else items.forEach(x=>sel.add(isNum?+x:x));refresh();};
+  all.onclick=()=>{
+    if(sel.size===items.length){
+      sel.clear();
+      if(minOne)items.slice(-1).forEach(x=>sel.add(isNum?+x:x));
+    }else{
+      items.forEach(x=>sel.add(isNum?+x:x));
+    }
+    refresh();
+  };
   c.appendChild(all);
   items.forEach(it=>{
     const k=isNum?+it:it;
     const b=document.createElement('button');
     b.className='chip'+(sel.has(k)?' on':'');
     b.textContent=isNum?it:(String(it).length>10?String(it).substring(0,10)+'…':it);
-    b.title=String(it);b.onclick=()=>{sel.has(k)?sel.delete(k):sel.add(k);refresh();};
+    b.title=String(it);
+    b.onclick=()=>{
+      if(sel.has(k)){
+        if(minOne&&sel.size===1)return;
+        sel.delete(k);
+      }else{
+        sel.add(k);
+      }
+      refresh();
+    };
     c.appendChild(b);
   });
 }
 
-function ins(id,txt){const el=document.getElementById(id);if(el)el.textContent=txt;}
-
-function genInsightLocal(anios,anioA,anioB,mc){
-  const vB=anioB?getVentaAnio(anioB,mc):0;
-  const vA=anioA?getVentaAnio(anioA,mc):0;
-  const varPct=pct(vA,vB);
-  const nM=mc.length;
-  const per=nM===12?'año completo':`ene–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`;
-
-  if(anios.length>=2){
-    const mejor=anios.reduce((a,b)=>getVentaAnio(a,mc)>getVentaAnio(b,mc)?a:b);
-    ins('ins-anio',`Mejor año en ${per}: ${mejor} con ${$k(getVentaAnio(mejor,mc))}. ${anioB&&anioA?`${anioB} muestra ${varPct>=0?'crecimiento':'descenso'} de ${sgn(varPct)}${varPct?.toFixed(1)}% vs ${anioA}.`:''}`);
-  }
-  const vars=anios.map((a,i)=>{if(!i)return null;const p=pct(getVentaAnio(anios[i-1],mc),getVentaAnio(a,mc));return{a,p};}).filter(Boolean);
-  if(vars.length){
-    const mj=vars.reduce((a,b)=>a.p>b.p?a:b);const pr=vars.reduce((a,b)=>a.p<b.p?a:b);
-    ins('ins-varA',`Mayor crecimiento: ${mj.a} (${sgn(mj.p)}${mj.p.toFixed(1)}%). ${pr.p<0?`Único año con caída: ${pr.a} (${pr.p.toFixed(1)}%).`:'Todos los años muestran crecimiento.'}`);
-  }
-  if(anioA&&anioB){
-    const mv=mc.map(m=>{const mi=MESES.indexOf(m),a=(DATA.mensual[anioA]||[])[mi]||0,b=(DATA.mensual[anioB]||[])[mi]||0;return a?{m:MESES_S[mi],p:pct(a,b)}:null;}).filter(Boolean);
-    const vd=mv.filter(x=>x.p>=0),ro=mv.filter(x=>x.p<0);
-    const mj=mv.reduce((a,b)=>a.p>b.p?a:b,mv[0]),pr=mv.reduce((a,b)=>a.p<b.p?a:b,mv[0]);
-    ins('ins-mens',`${vd.length} de ${mv.length} meses en ${anioB} superaron a ${anioA} (${vd.map(x=>x.m).join(', ')||'ninguno'}). Mejor mes: ${mj?.m} (${sgn(mj?.p)}${mj?.p.toFixed(1)}%), peor: ${pr?.m} (${pr?.p.toFixed(1)}%).`);
-    const pv=PAISES.filter(p=>selPaises.has(p)).map(p=>({p,vA:getVentaPais(p,anioA,mc),vB:getVentaPais(p,anioB,mc)})).map(x=>({...x,pct:pct(x.vA,x.vB)}));
-    const pt=pv.filter(x=>x.pct!==null).sort((a,b)=>b.pct-a.pct)[0];
-    const pb=pv.filter(x=>x.pct!==null).sort((a,b)=>a.pct-b.pct)[0];
-    const pm=pv.reduce((a,b)=>a.vB>b.vB?a:b,pv[0]);
-    ins('ins-pais',`Mayor crecimiento: ${pt?.p} (${sgn(pt?.pct)}${pt?.pct.toFixed(1)}%). Mayor caída: ${pb?.p} (${pb?.pct.toFixed(1)}%). Mercado principal: ${pm?.p} con ${$k(pm?.vB)} (${(pm?.vB/pv.reduce((s,x)=>s+x.vB,0)*100).toFixed(0)}% del total).`);
-    const cv=CLIENTES.map(c=>({c,vA:getVentaCli(c,anioA,mc),vB:getVentaCli(c,anioB,mc)})).map(x=>({...x,pct:x.vA>0?pct(x.vA,x.vB):null})).filter(x=>x.vB>0||x.vA>0);
-    const ct=cv.filter(x=>x.pct!==null).sort((a,b)=>b.pct-a.pct)[0];
-    const cb=cv.filter(x=>x.pct!==null).sort((a,b)=>a.pct-b.pct)[0];
-    const cm=cv.reduce((a,b)=>a.vB>b.vB?a:b,cv[0]);
-    const p1=cm?cm.vB/cv.reduce((s,x)=>s+x.vB,0)*100:0;
-    ins('ins-cli',`Mayor crecimiento: ${ct?.c} (${sgn(ct?.pct)}${ct?.pct.toFixed(1)}%). Mayor caída: ${cb?.c} (${cb?.pct.toFixed(1)}%). Cliente principal: ${cm?.c} con ${$k(cm?.vB)} (${p1.toFixed(0)}%${p1>40?' — concentración alta':''}).`);
-    ins('ins-ytd',`YTD ${anioB} en ${per}: ${$k(vB)}, ${varPct>=0?'por encima de':'por debajo de'} ${anioA} (${$k(vA)}) en ${sgn(varPct)}${varPct?.toFixed(1)}%.`);
-    ins('ins-var',`Barras verdes = meses donde ${anioB} superó a ${anioA} en ese mes específico. Barras rojas (${ro.map(x=>x.m).join(', ')||'ninguna'}) = meses menores al año anterior — no significa que el año completo vaya mal. YTD ${per}: ${sgn(varPct)}${varPct?.toFixed(1)}%.`);
-  }
-}
-
-async function genInsight(tipo){
-  const btn=document.getElementById('btn-'+tipo);
-  const box=document.getElementById('ins-'+tipo);
-  if(!btn||!box)return;
-  btn.disabled=true;btn.textContent='...';
-  const textoLocal=box.textContent;
-  box.textContent='Generando análisis con IA...';
-  const anios=ANIOS.filter(a=>selAnios.has(a));
-  const anioB=anios[anios.length-1],anioA=anios.length>=2?anios[anios.length-2]:null;
-  const mc=getMesesComp();
-  const per=mc.length===12?'año completo':`ene–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`;
-  const vB=getVentaAnio(anioB,mc),vA=anioA?getVentaAnio(anioA,mc):0;
-
-  const prompts={
-    anio:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por año en ${per}: ${anios.map(a=>a+': '+$k(getVentaAnio(a,mc))).join(', ')}. Qué muestra la tendencia.`,
-    varA:`Analista de exportaciones. Máximo 2 oraciones en español. Variación % año a año: ${anios.map((a,i)=>i===0?null:`${a}: ${(pct(getVentaAnio(anios[i-1],mc),getVentaAnio(a,mc))||0).toFixed(1)}%`).filter(Boolean).join(', ')}. Qué años destacan.`,
-    mens:`Analista de exportaciones. Máximo 2 oraciones en español. Tendencia mensual ${anioA} vs ${anioB} en ${per}: ${mc.map(m=>{const mi=MESES.indexOf(m),a=(DATA.mensual[anioA]||[])[mi]||0,b=(DATA.mensual[anioB]||[])[mi]||0;return a?MESES_S[mi]+': '+(pct(a,b)||0).toFixed(1)+'%':null;}).filter(Boolean).join(', ')}. Qué meses fueron mejor y peor.`,
-    pais:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por país ${anioA} vs ${anioB}: ${PAISES.filter(p=>selPaises.has(p)).map(p=>`${p}: ${$k(getVentaPais(p,anioB,mc))} (${(pct(getVentaPais(p,anioA,mc),getVentaPais(p,anioB,mc))||0).toFixed(1)}%)`).join(', ')}. Destacar ganadores y perdedores.`,
-    cli:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por cliente ${anioA} vs ${anioB}: ${CLIENTES.map(c=>{const a=getVentaCli(c,anioA,mc),b=getVentaCli(c,anioB,mc);return b>0||a>0?`${c}: ${$k(b)} (${a>0?(pct(a,b)||0).toFixed(1)+'%':'nuevo'})`:null;}).filter(Boolean).join(', ')}. Destacar riesgos de concentración.`,
-    ytd:`Analista de exportaciones. Máximo 2 oraciones en español. YTD ${per}: ${anioB}=${$k(vB)}, ${anioA}=${$k(vA)}, variación=${(pct(vA,vB)||0).toFixed(1)}%. Cómo viene el año.`,
-    var:`Analista de exportaciones. Máximo 2 oraciones en español. Variación % mensual ${anioB} vs ${anioA}: ${mc.map(m=>{const mi=MESES.indexOf(m),a=(DATA.mensual[anioA]||[])[mi]||0,b=(DATA.mensual[anioB]||[])[mi]||0;return a?MESES_S[mi]+': '+(pct(a,b)||0).toFixed(1)+'%':null;}).filter(Boolean).join(', ')}. Explicar que barras rojas son comparaciones mensuales, no que el año esté mal — YTD sigue en ${(pct(vA,vB)||0).toFixed(1)}%.`
-  };
-
-  try{
-    const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompts[tipo]})});
-    const d=await r.json();
-    box.textContent=d.text||textoLocal;
-  }catch(e){
-    box.textContent=textoLocal;
-  }
-  btn.disabled=false;btn.textContent='↺ IA';
-}
-
 function refresh(){
-  buildChips('f-anio',ANIOS,selAnios,true);
+  buildChips('f-anio',ANIOS,selAnios,true,true);
   buildChips('f-pais',PAISES,selPaises,false);
   buildChips('f-mes',MESES,selMeses,false);
 
   const anios=ANIOS.filter(a=>selAnios.has(a));
+  if(anios.length<=1){
+    refreshIntra(anios[0]);
+  }else{
+    refreshInter(anios);
+  }
+}
+
+/* ---------- MODO INTRA-AÑO (un solo año seleccionado) ---------- */
+
+function refreshIntra(anio){
+  document.getElementById('leg-pais').innerHTML=`<span><span class="ldot" style="background:#1f3a5f;"></span>${anio}</span>`;
+  document.getElementById('leg-cli').innerHTML=`<span><span class="ldot" style="background:#1f3a5f;"></span>${anio}</span>`;
+
+  if(!anio){
+    document.getElementById('warn-parcial').style.display='none';
+    document.getElementById('kpi-row').innerHTML='<div class="kpi"><p class="kpi-l">Sin año seleccionado</p></div>';
+    return;
+  }
+
+  const mc=getMesesIntra(anio);
+  const tiene=anio===DATA.ultimo_anio;
+  const per=mc.length===12?'año completo':(mc.length?`${MESES_S[MESES.indexOf(mc[0])]}–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`:'sin datos');
+  document.getElementById('rng-label').textContent=`${anio} · ${per}`;
+
+  if(tiene&&selMeses.size>mc.length){
+    document.getElementById('warn-parcial').style.display='block';
+    document.getElementById('warn-txt').innerHTML=`<strong>Datos parciales:</strong> ${anio} solo tiene datos hasta ${DATA.ultimo_mes.toLowerCase()}. Se muestran solo esos meses.`;
+  }else{
+    document.getElementById('warn-parcial').style.display='none';
+  }
+
+  document.getElementById('sec-anio-t').textContent=`Venta por mes — ${anio}`;
+  document.getElementById('sec-varA-t').textContent='Variación % mes a mes';
+  document.getElementById('sec-var-t').textContent=`Variación % mes a mes — ${anio}`;
+
+  const valores=mc.map(m=>({m,mi:MESES.indexOf(m),v:(DATA.mensual[anio]||[])[MESES.indexOf(m)]||0}));
+  const total=valores.reduce((s,x)=>s+x.v,0);
+  const promedio=valores.length?total/valores.length:0;
+  const mejor=valores.length?valores.reduce((a,b)=>b.v>a.v?b:a):null;
+  const peor=valores.length?valores.reduce((a,b)=>b.v<a.v?b:a):null;
+  const trendPct=valores.length>=2?pct(valores[0].v,valores[valores.length-1].v):null;
+
+  document.getElementById('kpi-row').innerHTML=`
+    <div class="kpi"><p class="kpi-l">Total ${anio} · ${per}</p><p class="kpi-v">${$k(total)}</p><p class="kpi-s ${trendPct===null?'':trendPct>=0?'pos':'neg'}">${trendPct!==null?sgn(trendPct)+trendPct.toFixed(1)+'% ('+MESES_S[valores[0].mi]+'→'+MESES_S[valores[valores.length-1].mi]+')':'—'}</p></div>
+    <div class="kpi"><p class="kpi-l">Mejor mes</p><p class="kpi-v">${mejor?MESES_S[mejor.mi]:'—'}</p><p class="kpi-s">${mejor?$k(mejor.v):''}</p></div>
+    <div class="kpi"><p class="kpi-l">Peor mes</p><p class="kpi-v">${peor?MESES_S[peor.mi]:'—'}</p><p class="kpi-s">${peor?$k(peor.v):''}</p></div>
+    <div class="kpi"><p class="kpi-l">Promedio mensual</p><p class="kpi-v">${$k(promedio)}</p><p class="kpi-s">${valores.length} meses</p></div>
+  `;
+
+  const barColors=valores.map(x=>mejor&&x.mi===mejor.mi?'#0ca30c':(peor&&x.mi===peor.mi&&(!mejor||peor.mi!==mejor.mi)?'#d03b3b':'#1f3a5f'));
+  upd('c-anio',{type:'bar',data:{labels:valores.map(x=>MESES_S[x.mi]),datasets:[{data:valores.map(x=>x.v),backgroundColor:barColors,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>$k(c.parsed.y)}}},scales:{x:{ticks:{color:'#52514e'},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
+
+  const varMes=valores.map((x,i)=>i===0?null:parseFloat((pct(valores[i-1].v,x.v)||0).toFixed(1)));
+  upd('c-varA',{type:'bar',data:{labels:valores.map(x=>MESES_S[x.mi]),datasets:[{data:varMes,backgroundColor:varMes.map(v=>v===null?'transparent':v>=0?'#0ca30c':'#d03b3b'),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!==null?sgn(c.parsed.y)+c.parsed.y+'%':null}}},scales:{x:{ticks:{color:'#52514e'},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>sgn(v)+v+'%'},grid:{color:'#f0efec'}}}}});
+
+  document.getElementById('leg-mens').innerHTML=`<span><span class="ldot" style="background:#1f3a5f;"></span>${anio}</span>`;
+  upd('c-mens',{type:'line',data:{labels:MESES_S,datasets:[{label:String(anio),data:MESES.map((m,mi)=>mc.includes(m)?((DATA.mensual[anio]||[])[mi]||null):null),borderColor:'#1f3a5f',pointBackgroundColor:'#1f3a5f',borderWidth:2,pointRadius:3,tension:0.3,fill:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y?$k(c.parsed.y):null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
+
+  const pPaises=PAISES.filter(p=>selPaises.has(p));
+  const pVals=pPaises.map(p=>getVentaPais(p,anio,mc));
+  upd('c-pais',{type:'bar',data:{labels:pPaises,datasets:[{label:String(anio),data:pVals,backgroundColor:'#1f3a5f',borderRadius:3}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>$k(c.parsed.x)}}},scales:{x:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}},y:{ticks:{color:'#52514e'},grid:{display:false}}}}});
+
+  upd('c-pie',{type:'doughnut',data:{labels:pPaises,datasets:[{data:pVals,backgroundColor:PIE_COLS.slice(0,pPaises.length),borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},color:'#52514e',boxWidth:12}},tooltip:{callbacks:{label:c=>{const t=pVals.reduce((a,b)=>a+b,0);return`${c.label}: ${$k(c.parsed)} (${t?(c.parsed/t*100).toFixed(1):0}%)`;}}}}}});
+
+  const cVals=CLIENTES.map(c=>getVentaCli(c,anio,mc));
+  upd('c-cli',{type:'bar',data:{labels:CLIENTES,datasets:[{label:String(anio),data:cVals,backgroundColor:'#1f3a5f',borderRadius:3}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>$k(c.parsed.x)}}},scales:{x:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}},y:{ticks:{color:'#52514e'},grid:{display:false}}}}});
+
+  document.getElementById('leg-ytd').innerHTML=`<span><span class="ldot" style="background:#1f3a5f;"></span>${anio}</span>`;
+  let acc=0;
+  const ytdData=MESES_S.map((_,mi)=>{if(!mc.includes(MESES[mi]))return null;acc+=((DATA.mensual[anio]||[])[mi]||0);return Math.round(acc)||null;});
+  upd('c-ytd',{type:'line',data:{labels:MESES_S,datasets:[{label:String(anio),data:ytdData,borderColor:'#1f3a5f',pointBackgroundColor:'#1f3a5f',borderWidth:2,pointRadius:3,tension:0.3,fill:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y?$k(c.parsed.y):null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
+
+  upd('c-var',{type:'bar',data:{labels:valores.map(x=>MESES_S[x.mi]),datasets:[{data:varMes,backgroundColor:varMes.map(v=>v===null?'transparent':v>=0?'#0ca30c':'#d03b3b'),borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!==null?sgn(c.parsed.y)+c.parsed.y+'%':null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>sgn(v)+v+'%'},grid:{color:'#f0efec'},afterDataLimits:s=>{s.min=Math.min(s.min,-10);s.max=Math.max(s.max,10);}}}}});
+
+  genInsightIntra(anio,valores,total,promedio,mejor,peor,trendPct,per,pPaises,pVals,cVals);
+}
+
+function genInsightIntra(anio,valores,total,promedio,mejor,peor,trendPct,per,pPaises,pVals,cVals){
+  ins('ins-anio',`${anio} (${per}): venta total ${$k(total)}, promedio mensual ${$k(promedio)}. Mejor mes: ${mejor?MESES_S[mejor.mi]:'—'}${mejor?' ('+$k(mejor.v)+')':''}, peor: ${peor?MESES_S[peor.mi]:'—'}${peor?' ('+$k(peor.v)+')':''}.`);
+
+  const subidas=valores.filter((x,i)=>i>0&&x.v>valores[i-1].v).length;
+  ins('ins-varA',`${subidas} de ${Math.max(valores.length-1,0)} meses crecieron respecto al mes anterior.${trendPct!==null?` Tendencia ${trendPct>=0?'positiva':'negativa'}: ${sgn(trendPct)}${trendPct.toFixed(1)}% de ${MESES_S[valores[0].mi]} a ${MESES_S[valores[valores.length-1].mi]}.`:''}`);
+
+  ins('ins-mens',`Evolución mensual de ${anio} en ${per}. El mes más fuerte fue ${mejor?MESES_S[mejor.mi]:'—'}, el más débil ${peor?MESES_S[peor.mi]:'—'}.`);
+
+  if(pPaises.length){
+    const totalPais=pVals.reduce((a,b)=>a+b,0);
+    const top=pPaises.map((p,i)=>({p,v:pVals[i]})).sort((a,b)=>b.v-a.v)[0];
+    ins('ins-pais',`Mercado principal en ${anio}: ${top.p} con ${$k(top.v)}${totalPais?` (${(top.v/totalPais*100).toFixed(0)}% del total).`:'.'}`);
+  }
+
+  const cTop=CLIENTES.map((c,i)=>({c,v:cVals[i]})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v)[0];
+  const totalCli=cVals.reduce((a,b)=>a+b,0);
+  ins('ins-cli',cTop?`Cliente principal en ${anio}: ${cTop.c} con ${$k(cTop.v)}${totalCli?` (${(cTop.v/totalCli*100).toFixed(0)}% del total).`:'.'}`:'Sin datos de clientes para este período.');
+
+  ins('ins-ytd',`Acumulado ${per} de ${anio}: ${$k(total)}. Promedio mensual: ${$k(promedio)}.`);
+
+  ins('ins-var',`Variación mes a mes dentro de ${anio}. Verde = crecimiento vs. el mes anterior, rojo = caída. Selecciona un segundo año en los filtros para ver comparación interanual.`);
+}
+
+/* ---------- MODO INTER-AÑO (dos o más años seleccionados) ---------- */
+
+function refreshInter(anios){
+  document.getElementById('sec-anio-t').textContent='Venta total por año';
+  document.getElementById('sec-varA-t').textContent='Variación % año a año';
+  document.getElementById('sec-var-t').textContent='Variación % mensual — año actual vs anterior';
+  document.getElementById('leg-pais').innerHTML=LEG_INTER;
+  document.getElementById('leg-cli').innerHTML=LEG_INTER;
+
   const anioB=anios[anios.length-1],anioA=anios.length>=2?anios[anios.length-2]:null;
   const tiene2026=anios.includes(DATA.ultimo_anio);
   const mc=getMesesComp();
@@ -291,6 +361,7 @@ function refresh(){
   const varPct=pct(vA,vB);
   const per=mc.length===12?'año completo':`ene–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`;
   document.getElementById('warn-parcial').style.display=tiene2026&&selMeses.size>mc.length?'block':'none';
+  document.getElementById('warn-txt').innerHTML=`<strong>Comparación parcial:</strong> ${DATA.ultimo_anio} solo tiene datos hasta ${DATA.ultimo_mes.toLowerCase()}. Se compara solo ese período en ambos años.`;
   document.getElementById('rng-label').textContent=per;
 
   const ytd2026=getVentaAnio(DATA.ultimo_anio,mc);
@@ -326,7 +397,7 @@ function refresh(){
 
   if(anioB){
     const pd=pPaises.map(p=>getVentaPais(p,anioB,mc));
-    upd('c-pie',{type:'doughnut',data:{labels:pPaises,datasets:[{data:pd,backgroundColor:PIE_COLS.slice(0,pPaises.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},color:'#52514e',boxWidth:12}},tooltip:{callbacks:{label:c=>{const t=pd.reduce((a,b)=>a+b,0);return`${c.label}: ${$k(c.parsed)} (${(c.parsed/t*100).toFixed(1)}%)`;}}}}}}); 
+    upd('c-pie',{type:'doughnut',data:{labels:pPaises,datasets:[{data:pd,backgroundColor:PIE_COLS.slice(0,pPaises.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},color:'#52514e',boxWidth:12}},tooltip:{callbacks:{label:c=>{const t=pd.reduce((a,b)=>a+b,0);return`${c.label}: ${$k(c.parsed)} (${(c.parsed/t*100).toFixed(1)}%)`;}}}}}});
   }
 
   const cDS=[];
@@ -339,12 +410,12 @@ function refresh(){
   upd('c-ytd',{type:'line',data:{labels:MESES_S,datasets:ytdDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y?`${c.dataset.label}: ${$k(c.parsed.y)}`:null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
 
   const vm=anioA&&anioB?MESES_S.map((_,mi)=>{const a=(DATA.mensual[anioA]||[])[mi]||0,b=(DATA.mensual[anioB]||[])[mi]||0;if(!a||!selMeses.has(MESES[mi]))return null;return parseFloat((pct(a,b)||0).toFixed(1));}):[];
-  upd('c-var',{type:'bar',data:{labels:MESES_S,datasets:[{data:vm,backgroundColor:vm.map(v=>v===null?'transparent':v>=0?'#0ca30c':'#d03b3b'),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!==null?sgn(c.parsed.y)+c.parsed.y+'%':null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>sgn(v)+v+'%'},grid:{color:'#f0efec'},afterDataLimits:s=>{s.min=Math.min(s.min,-10);s.max=Math.max(s.max,10);}}}}}); 
+  upd('c-var',{type:'bar',data:{labels:MESES_S,datasets:[{data:vm,backgroundColor:vm.map(v=>v===null?'transparent':v>=0?'#0ca30c':'#d03b3b'),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!==null?sgn(c.parsed.y)+c.parsed.y+'%':null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>sgn(v)+v+'%'},grid:{color:'#f0efec'},afterDataLimits:s=>{s.min=Math.min(s.min,-10);s.max=Math.max(s.max,10);}}}}});
 
-  genInsightLocal(anios,anioA,anioB,mc);
+  genInsightInter(anios,anioA,anioB,mc);
 }
 
-function genInsightLocal(anios,anioA,anioB,mc){
+function genInsightInter(anios,anioA,anioB,mc){
   const vB=anioB?getVentaAnio(anioB,mc):0,vA=anioA?getVentaAnio(anioA,mc):0;
   const varPct=pct(vA,vB);
   const per=mc.length===12?'año completo':`ene–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`;
@@ -366,6 +437,62 @@ function genInsightLocal(anios,anioA,anioB,mc){
     ins('ins-ytd',`YTD ${anioB} en ${per}: ${$k(vB)}, ${varPct>=0?'por encima de':'por debajo de'} ${anioA} (${$k(vA)}) en ${sgn(varPct)}${varPct?.toFixed(1)}%.`);
     ins('ins-var',`Barras verdes = meses donde ${anioB} superó a ${anioA} ese mes específico. Barras rojas (${ro.map(x=>x.m).join(', ')||'ninguna'}) = meses menores — no significa que el año esté mal. YTD ${per}: ${sgn(varPct)}${varPct?.toFixed(1)}%.`);
   }
+}
+
+/* ---------- IA (análisis vía api/analyze) ---------- */
+
+function buildPromptInter(tipo,anios){
+  const anioB=anios[anios.length-1],anioA=anios.length>=2?anios[anios.length-2]:null;
+  const mc=getMesesComp();
+  const per=mc.length===12?'año completo':`ene–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`;
+  const vB=getVentaAnio(anioB,mc),vA=anioA?getVentaAnio(anioA,mc):0;
+  const prompts={
+    anio:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por año en ${per}: ${anios.map(a=>a+': '+$k(getVentaAnio(a,mc))).join(', ')}. Qué muestra la tendencia.`,
+    varA:`Analista de exportaciones. Máximo 2 oraciones en español. Variación % año a año: ${anios.map((a,i)=>i===0?null:`${a}: ${(pct(getVentaAnio(anios[i-1],mc),getVentaAnio(a,mc))||0).toFixed(1)}%`).filter(Boolean).join(', ')}. Qué años destacan.`,
+    mens:`Analista de exportaciones. Máximo 2 oraciones en español. Tendencia mensual ${anioA} vs ${anioB} en ${per}: ${mc.map(m=>{const mi=MESES.indexOf(m),a=(DATA.mensual[anioA]||[])[mi]||0,b=(DATA.mensual[anioB]||[])[mi]||0;return a?MESES_S[mi]+': '+(pct(a,b)||0).toFixed(1)+'%':null;}).filter(Boolean).join(', ')}. Qué meses fueron mejor y peor.`,
+    pais:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por país ${anioA} vs ${anioB}: ${PAISES.filter(p=>selPaises.has(p)).map(p=>`${p}: ${$k(getVentaPais(p,anioB,mc))} (${(pct(getVentaPais(p,anioA,mc),getVentaPais(p,anioB,mc))||0).toFixed(1)}%)`).join(', ')}. Destacar ganadores y perdedores.`,
+    cli:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por cliente ${anioA} vs ${anioB}: ${CLIENTES.map(c=>{const a=getVentaCli(c,anioA,mc),b=getVentaCli(c,anioB,mc);return b>0||a>0?`${c}: ${$k(b)} (${a>0?(pct(a,b)||0).toFixed(1)+'%':'nuevo'})`:null;}).filter(Boolean).join(', ')}. Destacar riesgos de concentración.`,
+    ytd:`Analista de exportaciones. Máximo 2 oraciones en español. YTD ${per}: ${anioB}=${$k(vB)}, ${anioA}=${$k(vA)}, variación=${(pct(vA,vB)||0).toFixed(1)}%. Cómo viene el año.`,
+    var:`Analista de exportaciones. Máximo 2 oraciones en español. Variación % mensual ${anioB} vs ${anioA}: ${mc.map(m=>{const mi=MESES.indexOf(m),a=(DATA.mensual[anioA]||[])[mi]||0,b=(DATA.mensual[anioB]||[])[mi]||0;return a?MESES_S[mi]+': '+(pct(a,b)||0).toFixed(1)+'%':null;}).filter(Boolean).join(', ')}. Explicar que barras rojas son comparaciones mensuales, no que el año esté mal — YTD sigue en ${(pct(vA,vB)||0).toFixed(1)}%.`
+  };
+  return prompts[tipo];
+}
+
+function buildPromptIntra(tipo,anio){
+  const mc=getMesesIntra(anio);
+  const per=mc.length===12?'año completo':(mc.length?`${MESES_S[MESES.indexOf(mc[0])]}–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`:'sin datos');
+  const valores=mc.map(m=>{const mi=MESES.indexOf(m);return{m:MESES_S[mi],v:(DATA.mensual[anio]||[])[mi]||0};});
+  const base=`Analista de exportaciones. Máximo 2 oraciones en español. Año ${anio}, ${per}. Venta mensual: ${valores.map(x=>x.m+': '+$k(x.v)).join(', ')}.`;
+  const pPaises=PAISES.filter(p=>selPaises.has(p));
+  const prompts={
+    anio:`${base} Describe cómo fue evolucionando el año mes a mes.`,
+    varA:`${base} Analiza la variación mes a mes, destacando los meses con mayor crecimiento y caída.`,
+    mens:`${base} Resume la tendencia general del año.`,
+    pais:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por país en ${anio} (${per}): ${pPaises.map(p=>`${p}: ${$k(getVentaPais(p,anio,mc))}`).join(', ')}. Destaca el mercado principal.`,
+    cli:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por cliente en ${anio} (${per}): ${CLIENTES.map(c=>{const v=getVentaCli(c,anio,mc);return v>0?`${c}: ${$k(v)}`:null;}).filter(Boolean).join(', ')}. Destaca riesgos de concentración.`,
+    ytd:`${base} Describe el acumulado del año a la fecha.`,
+    var:`${base} Explica la variación mes a mes dentro del año, sin comparar con otros años.`
+  };
+  return prompts[tipo];
+}
+
+async function genInsight(tipo){
+  const btn=document.getElementById('btn-'+tipo);
+  const box=document.getElementById('ins-'+tipo);
+  if(!btn||!box)return;
+  btn.disabled=true;btn.textContent='...';
+  const textoLocal=box.textContent;
+  box.textContent='Generando análisis con IA...';
+  const anios=ANIOS.filter(a=>selAnios.has(a));
+  const prompt=anios.length<=1?buildPromptIntra(tipo,anios[0]):buildPromptInter(tipo,anios);
+  try{
+    const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+    const d=await r.json();
+    box.textContent=d.text||textoLocal;
+  }catch(e){
+    box.textContent=textoLocal;
+  }
+  btn.disabled=false;btn.textContent='↺ IA';
 }
 
 function showPage(id,btn){
