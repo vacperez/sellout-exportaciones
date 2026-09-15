@@ -109,6 +109,12 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px;}
   <div class="chart-wrap" style="max-width:420px;">
     <div style="position:relative;height:260px;"><canvas id="c-pie" role="img" aria-label="Participación por país"></canvas></div>
   </div>
+  <p class="sec" id="sec-pais-mens-t">Tendencia mensual por país</p>
+  <div class="chart-wrap">
+    <div class="leg" id="leg-pais-mens"></div>
+    <div style="position:relative;height:280px;"><canvas id="c-pais-mens" role="img" aria-label="Tendencia mensual por país"></canvas></div>
+  </div>
+  <div class="insight-box"><span class="insight-icon">💡</span><span class="insight-text" id="ins-pais-mens"></span><button class="insight-btn" id="btn-pais-mens" onclick="genInsight('pais-mens')">↺ IA</button></div>
 </div>
 
 <div id="pg-cliente" class="panel">
@@ -142,6 +148,7 @@ const MESES=["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","
 const MESES_S=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const PIE_COLS=["#2a78d6","#eb6834","#1baf7a","#eda100","#e87ba4","#008300","#6250d6"];
 const LEG_INTER='<span><span class="ldot" style="background:#7f9cc4;"></span>Año anterior</span><span><span class="ldot" style="background:#1f3a5f;"></span>Año actual</span>';
+const PAIS_LINE_COLS=["#1f3a5f","#378add","#0ca30c","#eda100","#d03b3b","#6250d6","#e87ba4","#008300","#eb6834","#85b7eb"];
 
 let DATA={}, ANIOS=[], PAISES=[], CLIENTES=[], MESES_CON_DATO=new Set();
 let selAnios=new Set(), selPaises=new Set(), selMeses=new Set(MESES);
@@ -173,6 +180,31 @@ function sgn(v){return v>=0?'+':'';}
 function pct(a,b){return a?((b-a)/a*100):null;}
 function upd(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),cfg);}
 function ins(id,txt){const el=document.getElementById(id);if(el)el.textContent=txt;}
+
+// dibuja una línea por país (venta mensual real de cada país) para un año dado
+function renderPaisTendencia(anio,mc,paises){
+  const cols=PAIS_LINE_COLS;
+  const ds=paises.map((p,i)=>({
+    label:p,
+    data:MESES.map((m,mi)=>mc.includes(m)?((DATA.mensual_paises?.[p]?.[anio]||[])[mi]||null):null),
+    borderColor:cols[i%cols.length],pointBackgroundColor:cols[i%cols.length],
+    borderWidth:2,pointRadius:2,tension:0.3,fill:false
+  }));
+  document.getElementById('leg-pais-mens').innerHTML=paises.map((p,i)=>`<span><span class="ldot" style="background:${cols[i%cols.length]}"></span>${p}</span>`).join('')||'<span style="color:#aaa;">Sin países seleccionados</span>';
+  upd('c-pais-mens',{type:'line',data:{labels:MESES_S,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y?`${c.dataset.label}: ${$k(c.parsed.y)}`:null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
+}
+// mayor crecimiento mes a mes (primer mes seleccionado vs último) entre los países dados
+function insightPaisTendencia(anio,mc,paises){
+  if(!paises.length||mc.length<2){ins('ins-pais-mens','Selecciona al menos 2 meses y 1 país para comparar tendencias.');return;}
+  const cr=paises.map(p=>{
+    const serie=DATA.mensual_paises?.[p]?.[anio]||[];
+    const first=serie[MESES.indexOf(mc[0])]||0,last=serie[MESES.indexOf(mc[mc.length-1])]||0;
+    return{p,pct:pct(first,last)};
+  }).filter(x=>x.pct!==null);
+  if(!cr.length){ins('ins-pais-mens',`Evolución mensual por país en ${anio}, ${MESES_S[MESES.indexOf(mc[0])]}–${MESES_S[MESES.indexOf(mc[mc.length-1])]}.`);return;}
+  const top=cr.reduce((a,b)=>b.pct>a.pct?b:a),bot=cr.reduce((a,b)=>b.pct<a.pct?b:a);
+  ins('ins-pais-mens',`Mayor crecimiento ${MESES_S[MESES.indexOf(mc[0])]}→${MESES_S[MESES.indexOf(mc[mc.length-1])]}: ${top.p} (${sgn(top.pct)}${top.pct.toFixed(1)}%). ${bot.pct<0?`Mayor caída: ${bot.p} (${bot.pct.toFixed(1)}%).`:''}`);
+}
 
 // meses considerados para un solo año (respeta filtro de mes y, si es el año en curso, corta en el último mes con dato)
 function getMesesIntra(anio){
@@ -347,6 +379,10 @@ function refreshIntra(anio){
   upd('c-pie',{type:'doughnut',data:{labels:pPaises,datasets:[{data:pVals,backgroundColor:PIE_COLS.slice(0,pPaises.length),borderWidth:2,borderColor:'#fff'}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},color:'#52514e',boxWidth:12}},tooltip:{callbacks:{label:c=>{const t=pVals.reduce((a,b)=>a+b,0);return`${c.label}: ${$k(c.parsed)} (${t?(c.parsed/t*100).toFixed(1):0}%)`;}}}}}});
 
+  document.getElementById('sec-pais-mens-t').textContent=`Tendencia mensual por país — ${anio}`;
+  renderPaisTendencia(anio,mc,pPaises);
+  insightPaisTendencia(anio,mc,pPaises);
+
   const cVals=CLIENTES.map(c=>getVentaCli(c,anio,mc));
   upd('c-cli',{type:'bar',data:{labels:CLIENTES,datasets:[{label:String(anio),data:cVals,backgroundColor:'#1f3a5f',borderRadius:3}]},
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>$k(c.parsed.x)}}},scales:{x:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}},y:{ticks:{color:'#52514e'},grid:{display:false}}}}});
@@ -444,6 +480,9 @@ function refreshInter(anios){
     upd('c-pie',{type:'doughnut',data:{labels:pPaises,datasets:[{data:pd,backgroundColor:PIE_COLS.slice(0,pPaises.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},color:'#52514e',boxWidth:12}},tooltip:{callbacks:{label:c=>{const t=pd.reduce((a,b)=>a+b,0);return`${c.label}: ${$k(c.parsed)} (${(c.parsed/t*100).toFixed(1)}%)`;}}}}}});
   }
 
+  document.getElementById('sec-pais-mens-t').textContent=`Tendencia mensual por país — ${anioB||''}${anioA?` (para comparar con ${anioA}, selecciona un solo año)`:''}`;
+  if(anioB){renderPaisTendencia(anioB,mc,pPaises);insightPaisTendencia(anioB,mc,pPaises);}
+
   const cDS=[];
   if(anioA&&CLIENTES.some(c=>getVentaCli(c,anioA,mc)>0))cDS.push({label:String(anioA),data:CLIENTES.map(c=>getVentaCli(c,anioA,mc)),backgroundColor:'#7f9cc4',borderRadius:3});
   if(anioB&&CLIENTES.some(c=>getVentaCli(c,anioB,mc)>0))cDS.push({label:String(anioB),data:CLIENTES.map(c=>getVentaCli(c,anioB,mc)),backgroundColor:'#1f3a5f',borderRadius:3});
@@ -502,7 +541,8 @@ function buildPromptInter(tipo,anios){
     pais:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por país ${anioA} vs ${anioB}: ${PAISES.filter(p=>selPaises.has(p)).map(p=>`${p}: ${$k(getVentaPais(p,anioB,mc))} (${(pct(getVentaPais(p,anioA,mc),getVentaPais(p,anioB,mc))||0).toFixed(1)}%)`).join(', ')}. Destacar ganadores y perdedores.`,
     cli:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por cliente ${anioA} vs ${anioB}: ${CLIENTES.map(c=>{const a=getVentaCli(c,anioA,mc),b=getVentaCli(c,anioB,mc);return b>0||a>0?`${c}: ${$k(b)} (${a>0?(pct(a,b)||0).toFixed(1)+'%':'nuevo'})`:null;}).filter(Boolean).join(', ')}. Destacar riesgos de concentración.`,
     ytd:`Analista de exportaciones. Máximo 2 oraciones en español. YTD ${per}${ctx}: ${anioB}=${$k(vB)}, ${anioA}=${$k(vA)}, variación=${(pct(vA,vB)||0).toFixed(1)}%. Cómo viene el año.`,
-    var:`Analista de exportaciones. Máximo 2 oraciones en español. Variación % mensual ${anioB} vs ${anioA}${ctx}: ${mc.map(m=>{const mi=MESES.indexOf(m),a=sA[mi]||0,b=sB[mi]||0;return a?MESES_S[mi]+': '+(pct(a,b)||0).toFixed(1)+'%':null;}).filter(Boolean).join(', ')}. Explicar que barras rojas son comparaciones mensuales, no que el año esté mal — YTD sigue en ${(pct(vA,vB)||0).toFixed(1)}%.`
+    var:`Analista de exportaciones. Máximo 2 oraciones en español. Variación % mensual ${anioB} vs ${anioA}${ctx}: ${mc.map(m=>{const mi=MESES.indexOf(m),a=sA[mi]||0,b=sB[mi]||0;return a?MESES_S[mi]+': '+(pct(a,b)||0).toFixed(1)+'%':null;}).filter(Boolean).join(', ')}. Explicar que barras rojas son comparaciones mensuales, no que el año esté mal — YTD sigue en ${(pct(vA,vB)||0).toFixed(1)}%.`,
+    'pais-mens':`Analista de exportaciones. Máximo 2 oraciones en español. Evolución mensual en ${anioB} por país: ${PAISES.filter(p=>selPaises.has(p)).map(p=>{const serie=DATA.mensual_paises?.[p]?.[anioB]||[];return`${p}: ${mc.map(m=>MESES_S[MESES.indexOf(m)]+' '+$k(serie[MESES.indexOf(m)]||0)).join(', ')}`;}).join(' | ')}. Compara cuáles países crecen y cuáles caen mes a mes.`
   };
   return prompts[tipo];
 }
@@ -522,7 +562,8 @@ function buildPromptIntra(tipo,anio){
     pais:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por país en ${anio} (${per}): ${pPaises.map(p=>`${p}: ${$k(getVentaPais(p,anio,mc))}`).join(', ')}. Destaca el mercado principal.`,
     cli:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por cliente en ${anio} (${per}): ${CLIENTES.map(c=>{const v=getVentaCli(c,anio,mc);return v>0?`${c}: ${$k(v)}`:null;}).filter(Boolean).join(', ')}. Destaca riesgos de concentración.`,
     ytd:`${base} Describe el acumulado del año a la fecha.`,
-    var:`${base} Explica la variación mes a mes dentro del año, sin comparar con otros años.`
+    var:`${base} Explica la variación mes a mes dentro del año, sin comparar con otros años.`,
+    'pais-mens':`Analista de exportaciones. Máximo 2 oraciones en español. Evolución mensual en ${anio} (${per}) por país: ${pPaises.map(p=>{const s=DATA.mensual_paises?.[p]?.[anio]||[];return`${p}: ${mc.map(m=>MESES_S[MESES.indexOf(m)]+' '+$k(s[MESES.indexOf(m)]||0)).join(', ')}`;}).join(' | ')}. Compara cuáles países crecen y cuáles caen mes a mes.`
   };
   return prompts[tipo];
 }
