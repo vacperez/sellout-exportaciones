@@ -190,10 +190,16 @@ function getVentaAnio(anio,mc){
 }
 function getVentaPais(pais,anio,mc){
   const meses=mc||getMesesComp();
+  const mensual=DATA.mensual_paises?.[pais]?.[anio];
+  if(mensual)return Math.round(mensual.reduce((s,v,i)=>s+(meses.includes(MESES[i])?v:0),0));
+  // fallback (json exportado con una versión anterior de exportar_json.py, sin desglose mensual)
   return Math.round((DATA.paises[pais]?.[anio]||0)*meses.length/12);
 }
 function getVentaCli(cli,anio,mc){
   const meses=mc||getMesesComp();
+  const mensual=DATA.mensual_clientes?.[cli]?.[anio];
+  if(mensual)return Math.round(mensual.reduce((s,v,i)=>s+(meses.includes(MESES[i])?v:0),0));
+  // fallback (json exportado con una versión anterior de exportar_json.py, sin desglose mensual)
   return Math.round((DATA.clientes[cli]?.[anio]||0)*meses.length/12);
 }
 
