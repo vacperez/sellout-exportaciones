@@ -152,6 +152,7 @@ const MESES=["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","
 const MESES_S=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const PIE_COLS=["#2a78d6","#eb6834","#1baf7a","#eda100","#e87ba4","#008300","#6250d6"];
 const LEG_INTER='<span><span class="ldot" style="background:#7f9cc4;"></span>Año anterior</span><span><span class="ldot" style="background:#1f3a5f;"></span>Año actual</span>';
+const YEAR_COLS=["#1f3a5f","#7f9cc4","#e08a2e","#2e9e6b","#9a9a9a","#b04a8c"];
 const PAIS_LINE_COLS=["#1f3a5f","#378add","#0ca30c","#eda100","#d03b3b","#6250d6","#e87ba4","#008300","#eb6834","#85b7eb"];
 
 let DATA={}, ANIOS=[], PAISES=[], CLIENTES=[], MESES_CON_DATO=new Set();
@@ -516,7 +517,9 @@ function refreshInter(anios){
     <div class="kpi"><p class="kpi-l">LTM</p><p class="kpi-v">${$k(getLTM())}</p><p class="kpi-s">Sep ${DATA.ultimo_anio-1}–${DATA.ultimo_mes.toLowerCase()} ${DATA.ultimo_anio}</p></div>
   `;
 
-  const mensClrs=["#b5d4f4","#85b7eb","#378add","#185fa5","#7f9cc4","#1f3a5f"];
+  // colores asignados desde el año más reciente hacia atrás: actual = azul oscuro, anterior = azul
+  // claro (igual que en las barras por país/cliente), años más antiguos en tonos bien distintos
+  const mensClrs=anios.map((_,i)=>YEAR_COLS[anios.length-1-i]||'#9a9a9a');
   const barClrs=anios.map((_,i)=>mensClrs[i]||'#7f9cc4');
 
   upd('c-anio',{type:'bar',data:{labels:anios.map(String),datasets:[{data:anios.map(a=>getVentaAnio(a,mc)),backgroundColor:barClrs,borderRadius:4}]},
@@ -526,7 +529,7 @@ function refreshInter(anios){
   upd('c-varA',{type:'bar',data:{labels:anios.map(String),datasets:[{data:varAnio,backgroundColor:varAnio.map(v=>v===null?'transparent':v>=0?'#0ca30c':'#d03b3b'),borderRadius:4}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!==null?sgn(c.parsed.y)+c.parsed.y+'%':null}}},scales:{x:{ticks:{color:'#52514e'},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>sgn(v)+v+'%'},grid:{color:'#f0efec'}}}}});
 
-  const mensDS=anios.map((a,i)=>({label:String(a),data:MESES.map((m,mi)=>selMeses.has(m)?(getSerieMensual(a)[mi]??0):null),borderColor:mensClrs[i]||'#7f9cc4',pointBackgroundColor:mensClrs[i]||'#7f9cc4',borderWidth:2,pointRadius:3,tension:0.3,fill:false}));
+  const mensDS=anios.map((a,i)=>({label:String(a),data:MESES.map((m,mi)=>selMeses.has(m)?(getSerieMensual(a)[mi]??0):null),borderColor:mensClrs[i]||'#7f9cc4',pointBackgroundColor:mensClrs[i]||'#7f9cc4',borderWidth:i===anios.length-1?3:2,pointRadius:3,tension:0.3,fill:false}));
   document.getElementById('leg-mens').innerHTML=anios.map((a,i)=>`<span><span class="ldot" style="background:${mensClrs[i]}"></span>${a}</span>`).join('')+(pLabel?` <span style="color:#aaa;">· ${pLabel}</span>`:'');
   upd('c-mens',{type:'line',data:{labels:MESES_S,datasets:mensDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!=null?`${c.dataset.label}: ${$k(c.parsed.y)}`:null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
 
@@ -557,7 +560,7 @@ function refreshInter(anios){
   if(anioB&&CLIENTES.some(c=>getVentaCli(c,anioB,mc)>0))cDS.push({label:String(anioB),data:CLIENTES.map(c=>getVentaCli(c,anioB,mc)),backgroundColor:'#1f3a5f',borderRadius:3});
   upd('c-cli',{type:'bar',data:{labels:CLIENTES,datasets:cDS},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${$k(c.parsed.x)}`}}},scales:{x:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}},y:{ticks:{color:'#52514e'},grid:{display:false}}}}});
 
-  const ytdDS=anios.map((a,i)=>{let acc=0;const serie=getSerieMensual(a);return{label:String(a),data:MESES_S.map((_,mi)=>{if(!selMeses.has(MESES[mi]))return null;acc+=(serie[mi]||0);return Math.round(acc)||null;}),borderColor:mensClrs[i]||'#7f9cc4',pointBackgroundColor:mensClrs[i]||'#7f9cc4',borderWidth:2,pointRadius:3,tension:0.3,fill:false};});
+  const ytdDS=anios.map((a,i)=>{let acc=0;const serie=getSerieMensual(a);return{label:String(a),data:MESES_S.map((_,mi)=>{if(!selMeses.has(MESES[mi]))return null;acc+=(serie[mi]||0);return Math.round(acc)||null;}),borderColor:mensClrs[i]||'#7f9cc4',pointBackgroundColor:mensClrs[i]||'#7f9cc4',borderWidth:i===anios.length-1?3:2,pointRadius:3,tension:0.3,fill:false};});
   document.getElementById('leg-ytd').innerHTML=anios.map((a,i)=>`<span><span class="ldot" style="background:${mensClrs[i]}"></span>${a}</span>`).join('')+(pLabel?` <span style="color:#aaa;">· ${pLabel}</span>`:'');
   upd('c-ytd',{type:'line',data:{labels:MESES_S,datasets:ytdDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y?`${c.dataset.label}: ${$k(c.parsed.y)}`:null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
 
