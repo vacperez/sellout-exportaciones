@@ -82,7 +82,7 @@
       207310.92,
       209824.4,
       239628.79,
-      239284.25,
+      264732.25,
       0.0,
       0.0,
       0.0
@@ -95,7 +95,7 @@
       "2023": 145985.0,
       "2024": 120380.92,
       "2025": 82654.31,
-      "2026": 54052.56
+      "2026": 79500.56
     },
     "COSTA RICA": {
       "2021": 200055.6,
@@ -217,7 +217,7 @@
       "2023": 145985.0,
       "2024": 120380.92,
       "2025": 82654.31,
-      "2026": 54052.56
+      "2026": 79500.56
     },
     "F. Jenny": {
       "2021": 102779.99,
@@ -309,7 +309,7 @@
         4755.0,
         7577.0,
         5842.0,
-        0.0,
+        25448.0,
         0.0,
         0.0,
         0.0
@@ -1601,7 +1601,7 @@
         4755.0,
         7577.0,
         5842.0,
-        0.0,
+        25448.0,
         0.0,
         0.0,
         0.0
@@ -1696,6 +1696,6 @@
   },
   "notas": [
     "VIDUC (El Salvador) ya no es cliente activo: no hay datos desde julio 2026. La baja de El Salvador y del total desde ese mes se debe a esto, no a una caída de ventas de los clientes actuales.",
-    "Septiembre 2026 es parcial: faltan DIEK (Honduras) y Wako (Bolivia), que aún no han enviado su sell out. Honduras y Bolivia aparecen en $0 en septiembre y el total del mes está subestimado por eso."
+    "Septiembre 2026 es parcial: falta DIEK (Honduras), que aún no ha enviado su sell out. Honduras aparece en $0 en septiembre y el total del mes está subestimado por eso."
   ]
 }
