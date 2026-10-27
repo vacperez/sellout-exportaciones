@@ -1,5 +1,5 @@
 {
-  "ultima_actualizacion": "2026-10-15",
+  "ultima_actualizacion": "2026-10-27",
   "ultimo_mes": "SEPTIEMBRE",
   "ultimo_anio": 2026,
   "mensual": {
@@ -82,7 +82,7 @@
       207310.92,
       209824.4,
       239628.79,
-      264732.25,
+      270732.71,
       0.0,
       0.0,
       0.0
@@ -135,7 +135,7 @@
       "2023": 139053.0,
       "2024": 119680.81,
       "2025": 96991.99,
-      "2026": 70409.1
+      "2026": 76409.56
     },
     "NICARAGUA": {
       "2021": 102779.99,
@@ -201,7 +201,7 @@
       "2023": 139053.0,
       "2024": 119680.81,
       "2025": 96991.99,
-      "2026": 70409.1
+      "2026": 76409.56
     },
     "VIDUC": {
       "2021": 116386.03,
@@ -739,7 +739,7 @@
         5055.04,
         15644.36,
         8766.62,
-        0.0,
+        6000.46,
         0.0,
         0.0,
         0.0
@@ -1429,7 +1429,7 @@
         5055.04,
         15644.36,
         8766.62,
-        0.0,
+        6000.46,
         0.0,
         0.0,
         0.0
@@ -1695,7 +1695,6 @@
     }
   },
   "notas": [
-    "VIDUC (El Salvador) ya no es cliente activo: no hay datos desde julio 2026. La baja de El Salvador y del total desde ese mes se debe a esto, no a una caída de ventas de los clientes actuales.",
-    "Septiembre 2026 es parcial: falta DIEK (Honduras), que aún no ha enviado su sell out. Honduras aparece en $0 en septiembre y el total del mes está subestimado por eso."
+    "VIDUC (El Salvador) ya no es cliente activo: no hay datos desde julio 2026. La baja de El Salvador y del total desde ese mes se debe a esto, no a una caída de ventas de los clientes actuales."
   ]
 }
