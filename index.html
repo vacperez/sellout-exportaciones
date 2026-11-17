@@ -383,6 +383,14 @@ function precio(rows){ // USD/unidad solo con filas que traen USD y unidades
   let u=0,n=0; rows.forEach(r=>{if(r.u>0&&r.n>0){u+=r.u;n+=r.n;}}); return n?u/n:null;
 }
 function coberturaLinea(rows){const t=sum(rows,r=>r.u);const d=sum(rows.filter(r=>r.l!==SIN),r=>r.u);return t?d/t:null;}
+// Base comparable de unidades: solo cliente-mes que reportó unidades en AMBOS años.
+function cmUnits(rows){const m=new Map();rows.forEach(r=>{const k=r.c+'|'+r.m;m.set(k,(m.get(k)||0)+r.n);});return m;}
+function comparable(A,B){
+  const ka=cmUnits(A), kb=cmUnits(B), keys=new Set();
+  ka.forEach((v,k)=>{if(v>0&&kb.get(k)>0)keys.add(k);});
+  const f=rows=>rows.filter(r=>keys.has(r.c+'|'+r.m));
+  return {A:f(A),B:f(B),keys};
+}
 function coberturaUnd(rows){ // % de la venta USD de clientes-mes que reportan unidades
   const cm=new Map(); rows.forEach(r=>{const k=r.c+'|'+r.a+'|'+r.m;const o=cm.get(k)||{u:0,n:0};o.u+=r.u;o.n+=r.n;cm.set(k,o);});
   let t=0,c=0; cm.forEach(o=>{t+=o.u;if(o.n>0)c+=o.u;}); return t?c/t:null;
@@ -402,6 +410,7 @@ function buildApp(){
     <button class="tab on" data-t="resumen" role="tab">Resumen</button>
     <button class="tab" data-t="paises" role="tab">Países y clientes</button>
     <button class="tab" data-t="lineas" role="tab">Líneas de producto</button>
+    <button class="tab" data-t="unidades" role="tab">Unidades</button>
     <button class="tab" data-t="cumpl" role="tab">Cumplimiento de reporte${pend.length?`<span class="badge">${pend.length} pendiente${pend.length>1?'s':''}</span>`:''}</button>
     <button class="tab" data-t="detalle" role="tab">Detalle</button>
   </nav>
@@ -436,6 +445,16 @@ function buildApp(){
     </div>
   </section>
 
+  <section class="page" id="pg-unidades">
+    <div class="warn" id="und-info"></div>
+    <div class="sum-row" id="und-kpis"></div>
+    <div class="grid g2">
+      <div class="card"><div class="card-h"><div><h3>Unidades por mes · base comparable</h3><p class="c-sub" id="s-und-m"></p></div><div class="r legend lg-yr"></div></div><div class="cw" style="height:300px"><canvas id="c-und-m" role="img" aria-label="Unidades por mes, base comparable"></canvas></div></div>
+      <div class="card"><div class="card-h"><div><h3>Unidades por línea · base comparable</h3><p class="c-sub" id="s-und-l"></p></div><div class="r legend lg-yr"></div></div><div class="cw" id="cw-und-l"><canvas id="c-und-l" role="img" aria-label="Unidades por línea, base comparable"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><div class="card-h"><div><h3>¿Quién reporta unidades?</h3><p class="c-sub">Meses con unidades en cada año, unidades y precio por unidad. Las columnas "comparable" solo usan los meses que el cliente reportó con unidades en ambos años.</p></div></div><div class="tw" id="tb-und"></div></div>
+  </section>
+
   <section class="page" id="pg-cumpl">
     <div class="sum-row" id="cumpl-sum"></div>
     <div class="card"><div class="card-h"><div><h3 id="t-cumpl">Reporte mensual por cliente</h3><p class="c-sub">Qué clientes ya enviaron su sell out cada mes, agrupado por asesora</p></div>
@@ -450,21 +469,32 @@ function buildApp(){
       <div class="pager" id="det-pg"></div></div>
   </section>
   <p class="foot">Sell out = venta que reportan los distribuidores a sus clientes finales; no es la facturación de Ideace. Solo datos reales reportados (los meses sin reporte no se estiman). VIDUC y F. Jenny ya no son clientes: suman en los totales históricos, pero no aparecen en las vistas por cliente. Las comparaciones usan siempre el mismo rango de meses en ambos años.</p>`;
-  document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{TAB=b.dataset.t;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='pg-'+TAB));refresh();});
+  document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>goTab(b.dataset.t));
   document.getElementById('det-q').oninput=e=>{det.q=e.target.value.toLowerCase();det.page=0;renderDetalle();};
   document.getElementById('det-xl').onclick=exportXlsx;
 }
+function goTab(t){TAB=t;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.t===t));document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='pg-'+t));refresh();window.scrollTo({top:document.querySelector('.tabs').offsetTop-80,behavior:'smooth'});}
 function aiBox(id){return `<div class="ai"><div class="ai-t" id="ai-${id}"></div><button class="btn" type="button" id="aib-${id}" onclick="genAI('${id}')">✦ Analizar con IA</button></div>`;}
 
 /* ---------- refresco ---------- */
 function refresh(){
   if(!D)return;
-  renderChips(); renderKPIs();
+  renderChips(); renderKPIs(); unitsBanner();
   if(TAB==='resumen')renderResumen();
   if(TAB==='paises')renderPaises();
   if(TAB==='lineas')renderLineas();
+  if(TAB==='unidades')renderUnidades();
   if(TAB==='cumpl')renderCumpl();
   if(TAB==='detalle')renderDetalle();
+}
+
+function unitsBanner(){
+  document.querySelectorAll('.und-ban').forEach(e=>e.remove());
+  if(F.met!=='und'||TAB==='unidades'||TAB==='cumpl'||TAB==='detalle')return;
+  const pg=document.getElementById('pg-'+TAB); if(!pg)return;
+  const d=document.createElement('div'); d.className='warn und-ban';
+  d.innerHTML='Estás viendo <b>unidades totales reportadas</b>: incluyen solo a los clientes que envían unidades, y no son los mismos cada año. Para comparar años usa la pestaña <a href="#" class="go-und2">Unidades</a>, que compara la misma base.';
+  pg.prepend(d); d.querySelector('.go-und2').onclick=e=>{e.preventDefault();goTab('unidades');};
 }
 
 /* ---------- KPIs ---------- */
@@ -479,16 +509,17 @@ function renderKPIs(){
     let sa=0,sb=0; ca.forEach((v,c)=>{if(cb.get(c)>0){sa+=v;sb+=cb.get(c);}});
     const nuevos=[...ca.keys()].filter(c=>!(cb.get(c)>0)&&ca.get(c)>0);
     if(sb&&nuevos.length)same=`<p class="k-s2">Mismos clientes: <b>${pct(sa/sb-1)}</b> (sin ${nuevos.join(', ')})</p>`;}
-  const cl=coberturaLinea(A), cu=coberturaUnd(A);
+  const cl=coberturaLinea(A), cu=coberturaUnd(A), cmp=B?comparable(A,B):null;
   const pend=pendientesUltimoMes(), tot=Object.keys(D.reporte||{}).length;
   const lastLbl=MESES[MESES.findIndex(m=>m.toUpperCase()===D.ultimo_mes)].toLowerCase();
   const vs=B?` vs ${F.comp}`:'';
-  document.getElementById('kpis').innerHTML=`
+  const kp=document.getElementById('kpis'); kp.innerHTML=`
    <div class="kpi hero"><p class="k-l">Sell out · ${F.anio} · ${perLbl()}</p><p class="k-v" title="${usd(uA)}">${usdK(uA)}</p><p class="k-s">${B?deltaHtml(uA,uB)+' <span class="k-s2">'+vs+' ('+usdK(uB)+')</span>':'<span class="k-s2">sin comparación</span>'}</p>${same}</div>
-   <div class="kpi"><p class="k-l">Unidades</p><p class="k-v">${undK(nA)}</p><p class="k-s">${B?deltaHtml(nA,nB)+' <span class="k-s2">'+vs+'</span>':''}</p><p class="k-s2">${pctPlain(cu)} de la venta reporta unidades</p></div>
-   <div class="kpi"><p class="k-l">Precio promedio por unidad</p><p class="k-v">${pA!=null?'$'+nf2.format(pA):'—'}</p><p class="k-s">${B&&pA&&pB?deltaHtml(pA,pB)+' <span class="k-s2">'+vs+'</span>':''}</p><p class="k-s2">USD ÷ unidades</p></div>
+   <div class="kpi"><p class="k-l">Unidades</p><p class="k-v" title="${und(nA)} unidades reportadas en total">${undK(nA)}</p><p class="k-s">${cmp?deltaHtml(sum(cmp.A,r=>r.n),sum(cmp.B,r=>r.n))+' <span class="k-s2">'+vs+' comparable</span>':''}</p><p class="k-s2">${pctPlain(cu)} de la venta reporta unidades · <a href="#" class="go-und">ver detalle</a></p></div>
+   <div class="kpi"><p class="k-l">Precio promedio por unidad</p><p class="k-v">${pA!=null?'$'+nf2.format(pA):'—'}</p><p class="k-s">${cmp&&precio(cmp.A)&&precio(cmp.B)?deltaHtml(precio(cmp.A),precio(cmp.B))+' <span class="k-s2">'+vs+' comparable</span>':''}</p><p class="k-s2">USD ÷ unidades</p></div>
    <div class="kpi"><p class="k-l">Desglose por línea</p><p class="k-v">${pctPlain(cl)}</p><p class="k-s2">de la venta del período viene separada por línea de producto</p></div>
    <div class="kpi"><p class="k-l">Reporte de ${lastLbl} ${D.ultimo_anio}</p><p class="k-v">${tot-pend.length} de ${tot}</p><p class="k-s2">${pend.length?'Pendientes: '+pend.join(', '):'Todos los clientes reportaron'}</p></div>`;
+  kp.querySelectorAll('.go-und').forEach(a=>a.onclick=e=>{e.preventDefault();goTab('unidades');});
 }
 function pendientesUltimoMes(){const rep=D.reporte||{};return Object.keys(rep).filter(c=>rep[c][rep[c].length-1]==='pendiente');}
 
@@ -549,7 +580,7 @@ function renderMovers(){
 }
 
 /* ---------- Países y clientes ---------- */
-function hbar(id,wrapId,labels,keys,dsA,dsB,onClickKey){
+function hbar(id,wrapId,labels,keys,dsA,dsB,onClickKey,fm=v=>fmtMet(v),fmF=v=>fmtMetFull(v)){
   document.getElementById(wrapId).style.height=Math.max(220,labels.length*(dsB?40:28)+40)+'px';
   const ds=[];
   if(dsB)ds.push({label:String(F.comp),data:dsB,backgroundColor:yrColor(F.comp),borderRadius:4,borderSkipped:'start',barPercentage:.9,categoryPercentage:.75});
@@ -557,9 +588,9 @@ function hbar(id,wrapId,labels,keys,dsA,dsB,onClickKey){
   const o=baseOpts({indexAxis:'y',interaction:{mode:'index',intersect:false,axis:'y'},
     onClick:(e,el)=>{if(el.length)onClickKey(keys[el[0].index]);},
     onHover:(e,el)=>{e.native.target.style.cursor=el.length?'pointer':'default';}});
-  o.scales={x:{grid:{color:css('--grid')},ticks:{color:css('--text-3'),font:{size:11},callback:v=>fmtMet(v),maxRotation:0,autoSkip:true,maxTicksLimit:6},border:{display:false},beginAtZero:true},
+  o.scales={x:{grid:{color:css('--grid')},ticks:{color:css('--text-3'),font:{size:11},callback:v=>fm(v),maxRotation:0,autoSkip:true,maxTicksLimit:6},border:{display:false},beginAtZero:true},
             y:{grid:{display:false},ticks:{color:css('--text-2'),font:{size:12}},border:{color:css('--grid')}}};
-  o.plugins.tooltip.callbacks={label:c=>' '+c.dataset.label+': '+fmtMetFull(c.parsed.x),afterBody:items=>{const a=items.find(i=>i.dataset.label==String(F.anio)),b=items.find(i=>i.dataset.label==String(F.comp));return a&&b?(b.parsed.x?'Variación: '+pct(a.parsed.x/b.parsed.x-1):'Sin venta en '+F.comp):'';}};
+  o.plugins.tooltip.callbacks={label:c=>' '+c.dataset.label+': '+fmF(c.parsed.x),afterBody:items=>{const a=items.find(i=>i.dataset.label==String(F.anio)),b=items.find(i=>i.dataset.label==String(F.comp));return a&&b?(b.parsed.x?'Variación: '+pct(a.parsed.x/b.parsed.x-1):'Sin venta en '+F.comp):'';}};
   mk(id,{type:'bar',data:{labels,datasets:ds},options:o});
 }
 function renderPaises(){
@@ -598,6 +629,51 @@ function renderLineas(){
   document.getElementById('tb-precio').innerHTML=`<table><thead><tr><th>Línea</th><th class="n">Unidades ${F.anio}</th><th class="n">$/u ${F.anio}</th>${F.comp!=null?`<th class="n">$/u ${F.comp}</th>`:''}</tr></thead><tbody>
    ${rowsP.map(r=>`<tr><td>${tc(r.l)}</td><td class="n">${und(r.n)}</td><td class="n">${r.pa!=null?'$'+nf2.format(r.pa):'—'}</td>${F.comp!=null?`<td class="n">${r.pb!=null?'$'+nf2.format(r.pb):'—'}</td>`:''}</tr>`).join('')}</tbody></table>`;
   aiLocal('lineas');
+}
+
+/* ---------- Unidades ---------- */
+function renderUnidades(){
+  document.querySelectorAll('.lg-yr').forEach(el=>legendYears(el,F.comp!=null?[F.comp,F.anio]:[F.anio]));
+  const A=rowsY(F.anio), B=F.comp!=null?rowsY(F.comp):[];
+  const info=document.getElementById('und-info');
+  if(F.comp==null){info.innerHTML='Elige un año en "Comparar con" para ver la comparación de unidades.';}
+  const cmp=F.comp!=null?comparable(A,B):{A:A.filter(r=>r.n>0),B:[]};
+  const nA=sum(A,r=>r.n), nB=sum(B,r=>r.n), cA=sum(cmp.A,r=>r.n), cB=sum(cmp.B,r=>r.n);
+  const pA=precio(cmp.A), pB=precio(cmp.B);
+  if(F.comp!=null)info.innerHTML=`<b>Cómo leer esta pestaña:</b> no todos los clientes envían unidades todos los meses (por ejemplo, El Pacífico y Mega Líneas casi siempre envían solo el total en USD). Para que la comparación sea justa, la <b>base comparable</b> usa solo los meses en que cada cliente reportó unidades en ${F.anio} <b>y</b> en ${F.comp}. Las unidades totales incluyen todo lo reportado, aunque los clientes no sean los mismos.`;
+  document.getElementById('und-kpis').innerHTML=`
+    <div class="kpi hero"><p class="k-l">Unidades · base comparable</p><p class="k-v">${undK(cA)}</p><p class="k-s">${F.comp!=null?deltaHtml(cA,cB)+' <span class="k-s2">vs '+F.comp+' ('+und(cB)+')</span>':''}</p><p class="k-s2">${cmp.keys?cmp.keys.size:0} meses-cliente con unidades en ambos años</p></div>
+    <div class="kpi"><p class="k-l">Precio por unidad · base comparable</p><p class="k-v">${pA!=null?'$'+nf2.format(pA):'—'}</p><p class="k-s">${F.comp!=null&&pA&&pB?deltaHtml(pA,pB)+' <span class="k-s2">vs '+F.comp+' ($'+nf2.format(pB)+')</span>':''}</p></div>
+    <div class="kpi"><p class="k-l">Unidades totales reportadas</p><p class="k-v">${undK(nA)}</p><p class="k-s2">${F.comp!=null?F.comp+': '+und(nB)+' · no comparables entre sí':''}</p></div>
+    <div class="kpi"><p class="k-l">Venta que reporta unidades</p><p class="k-v">${pctPlain(coberturaUnd(A))}</p><p class="k-s2">${F.comp!=null?F.comp+': '+pctPlain(coberturaUnd(B)):''}</p></div>`;
+  // por mes
+  const months=[];for(let m=F.m1;m<=F.m2;m++)months.push(m);
+  const gm=rows=>{const g=groupSum(rows,'m',r=>r.n);return months.map(m=>g.get(m)||0);};
+  document.getElementById('s-und-m').textContent=`${perLbl()} · solo meses-cliente con unidades en ambos años`;
+  const ds=[]; if(F.comp!=null)ds.push({label:String(F.comp),data:gm(cmp.B),backgroundColor:yrColor(F.comp),borderRadius:4,borderSkipped:'start',maxBarThickness:28,categoryPercentage:.72,barPercentage:.9});
+  ds.push({label:String(F.anio),data:gm(cmp.A),backgroundColor:yrColor(F.anio),borderRadius:4,borderSkipped:'start',maxBarThickness:28,categoryPercentage:.72,barPercentage:.9});
+  const o=baseOpts(); o.scales.y.ticks.callback=v=>undK(v); o.plugins.tooltip.callbacks={label:c=>' '+c.dataset.label+': '+und(c.parsed.y)+' unidades'};
+  mk('c-und-m',{type:'bar',data:{labels:months.map(m=>MS[m]),datasets:ds},options:o});
+  // por línea
+  const la=groupSum(cmp.A.filter(r=>r.l!==SIN),'l',r=>r.n), lb=groupSum(cmp.B.filter(r=>r.l!==SIN),'l',r=>r.n);
+  const ls=[...new Set([...la.keys(),...lb.keys()])].filter(l=>(la.get(l)||0)+(lb.get(l)||0)>0).sort((x,y)=>(la.get(y)||0)-(la.get(x)||0));
+  document.getElementById('s-und-l').textContent=`${perLbl()} · solo meses-cliente con unidades en ambos años`;
+  hbar('c-und-l','cw-und-l',ls.map(tc),ls,ls.map(l=>la.get(l)||0),F.comp!=null?ls.map(l=>lb.get(l)||0):null,l=>toggleFilter('lin',l),undK,v=>und(v)+' unidades');
+  // tabla por cliente
+  const cs=[...new Set([...A,...B].map(r=>r.c))].filter(c=>!isHidden(c));
+  const mesesUnd=(rows,c)=>{const m=new Set();cmUnits(rows.filter(r=>r.c===c)).forEach((v,k)=>{if(v>0)m.add(k);});return m.size;};
+  const mesesVenta=(rows,c)=>new Set(rows.filter(r=>r.c===c&&r.u>0).map(r=>r.m)).size;
+  const rows=cs.map(c=>{const a=A.filter(r=>r.c===c), b=B.filter(r=>r.c===c), ca=cmp.A.filter(r=>r.c===c), cb=cmp.B.filter(r=>r.c===c);
+    const muA=mesesUnd(A,c), mvA=mesesVenta(A,c);
+    const est=!mvA?'—':muA===0?'No reporta':muA<mvA?'Parcial':'Completo';
+    return {c,est,muA,mvA,muB:mesesUnd(B,c),mvB:mesesVenta(B,c),nA:sum(a,r=>r.n),nB:sum(b,r=>r.n),cA:sum(ca,r=>r.n),cB:sum(cb,r=>r.n),pA:precio(ca),pB:precio(cb)};})
+    .sort((x,y)=>y.cA-x.cA||y.nA-x.nA);
+  const tag=e=>e==='Completo'?'<span class="st ok">Completo</span>':e==='Parcial'?'<span class="st pend">Parcial</span>':e==='No reporta'?'<span class="st pend" style="background:var(--surface-2);color:var(--text-3)">No reporta</span>':'—';
+  const cmpCols=F.comp!=null;
+  document.getElementById('tb-und').innerHTML=`<table><thead><tr><th>Cliente</th><th>${F.anio}</th><th class="n">Meses con unidades ${F.anio}</th>${cmpCols?`<th class="n">Meses con unidades ${F.comp}</th>`:''}<th class="n">Unidades ${F.anio} (total)</th>${cmpCols?`<th class="n">Comparable ${F.comp}</th><th class="n">Comparable ${F.anio}</th><th class="n">Variación</th><th class="n">$/u ${F.comp}</th><th class="n">$/u ${F.anio}</th>`:''}</tr></thead><tbody>
+    ${rows.map(r=>`<tr class="click" data-c="${esc(r.c)}"><td>${esc(r.c)}</td><td>${tag(r.est)}</td><td class="n">${r.mvA?r.muA+' de '+r.mvA:'—'}</td>${cmpCols?`<td class="n">${r.mvB?r.muB+' de '+r.mvB:'—'}</td>`:''}<td class="n">${r.nA?und(r.nA):'—'}</td>${cmpCols?`<td class="n">${r.cB?und(r.cB):'—'}</td><td class="n">${r.cA?und(r.cA):'—'}</td><td class="n">${r.cB?`<span class="delta ${r.cA>=r.cB?'pos':'neg'}">${pct(r.cA/r.cB-1)}</span>`:'<span class="k-s2">sin base</span>'}</td><td class="n">${r.pB!=null?'$'+nf2.format(r.pB):'—'}</td><td class="n">${r.pA!=null?'$'+nf2.format(r.pA):'—'}</td>`:''}</tr>`).join('')}</tbody>
+    ${cmpCols?`<tfoot><tr><td>Total</td><td></td><td></td><td></td><td class="n">${und(nA)}</td><td class="n">${und(cB)}</td><td class="n">${und(cA)}</td><td class="n">${cB?pct(cA/cB-1):'—'}</td><td class="n">${pB!=null?'$'+nf2.format(pB):'—'}</td><td class="n">${pA!=null?'$'+nf2.format(pA):'—'}</td></tr></tfoot>`:''}</table>`;
+  document.querySelectorAll('#tb-und tr[data-c]').forEach(tr=>tr.onclick=()=>toggleFilter('cli',tr.dataset.c));
 }
 
 /* ---------- Cumplimiento ---------- */

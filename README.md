@@ -18,8 +18,11 @@ vercel.json         → configuración de Vercel
 - **Indicadores**: sell out vs mismo período del año anterior (y crecimiento con los mismos clientes,
   sin clientes nuevos), unidades, precio promedio por unidad, % de la venta con desglose por línea,
   y cuántos clientes reportaron el último mes.
-- **Pestañas**: Resumen · Países y clientes · Líneas de producto · Cumplimiento de reporte · Detalle
-  (tabla ordenable, con búsqueda y descarga a Excel).
+- **Pestañas**: Resumen · Países y clientes · Líneas de producto · Unidades · Cumplimiento de reporte ·
+  Detalle (tabla ordenable, con búsqueda y descarga a Excel).
+- **Unidades (base comparable)**: no todos los clientes envían unidades todos los meses, así que las
+  variaciones de unidades y de precio por unidad comparan solo los meses en que cada cliente reportó
+  unidades en ambos años. La pestaña Unidades muestra quién reporta unidades (completo, parcial o no reporta).
 - **Análisis con IA** en cada pestaña (botón "Analizar con IA"), con las notas de datos como contexto.
 - Modo claro / oscuro y vista para celular.
 
