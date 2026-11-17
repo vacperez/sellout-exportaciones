@@ -5,673 +5,704 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sell Out Exportaciones</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
+:root{
+  color-scheme:light;
+  --brand:#0f208a; --brand-2:#2638a2; --brand-soft:#e8ecfb; --accent:#ffcc00; --ink-brand:#4d4d4d;
+  --bg:#f4f5f8; --surface:#ffffff; --surface-2:#f8f9fb; --border:#e3e5ec; --border-strong:#cfd3de;
+  --text:#14161c; --text-2:#4d4d4d; --text-3:#767a86;
+  --pos:#137a43; --neg:#b42318;
+  --ok-bg:#e6f4ec; --ok-fg:#137a43; --pend-bg:#fff4d6; --pend-fg:#8a5a00; --na-fg:#a0a4ae;
+  --note-bg:#eef1fb; --note-border:#c9d1f2; --note-fg:#1b2a6b;
+  --warn-bg:#fff7e0; --warn-border:#f2d27a; --warn-fg:#7a5300;
+  --grid:#eceef3; --shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.06);
+  --yr-0:#9fb0e8; --yr-5:#0f208a; --yr-other:#c9ccd6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --brand:#90a4ee; --brand-2:#aebffa; --brand-soft:#1d2440; --accent:#ffcc00; --ink-brand:#d8dae0;
+    --bg:#0f1117; --surface:#161922; --surface-2:#1b1f2a; --border:#272c3a; --border-strong:#353b4d;
+    --text:#eceef3; --text-2:#c4c8d3; --text-3:#8d93a3;
+    --pos:#4cc38a; --neg:#f2837a;
+    --ok-bg:#12321f; --ok-fg:#5fd394; --pend-bg:#3a2e0b; --pend-fg:#f5c451; --na-fg:#5d6372;
+    --note-bg:#1a2140; --note-border:#2e3b72; --note-fg:#c9d3ff;
+    --warn-bg:#33290c; --warn-border:#6b5512; --warn-fg:#f5d27a;
+    --grid:#232838; --shadow:none;
+    --yr-0:#4658a8; --yr-5:#d0dbff; --yr-other:#3a4152;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --brand:#90a4ee; --brand-2:#aebffa; --brand-soft:#1d2440; --accent:#ffcc00; --ink-brand:#d8dae0;
+  --bg:#0f1117; --surface:#161922; --surface-2:#1b1f2a; --border:#272c3a; --border-strong:#353b4d;
+  --text:#eceef3; --text-2:#c4c8d3; --text-3:#8d93a3;
+  --pos:#4cc38a; --neg:#f2837a;
+  --ok-bg:#12321f; --ok-fg:#5fd394; --pend-bg:#3a2e0b; --pend-fg:#f5c451; --na-fg:#5d6372;
+  --note-bg:#1a2140; --note-border:#2e3b72; --note-fg:#c9d3ff;
+  --warn-bg:#33290c; --warn-border:#6b5512; --warn-fg:#f5d27a;
+  --grid:#232838; --shadow:none;
+  --yr-0:#4658a8; --yr-5:#d0dbff; --yr-other:#3a4152;
+}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:Arial,sans-serif;background:#f5f5f3;color:#0b0b0b;padding:20px;}
-h1{font-size:18px;font-weight:600;margin-bottom:4px;}
-.sub{font-size:13px;color:#52514e;margin-bottom:16px;}
-.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
-.kpi{background:#fff;border-radius:8px;border:1px solid #e1e0d9;padding:14px 16px;}
-.kpi-l{font-size:11px;color:#52514e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
-.kpi-v{font-size:22px;font-weight:600;}
-.kpi-s{font-size:12px;color:#52514e;margin-top:3px;}
-.pos{color:#0ca30c;}.neg{color:#d03b3b;}
-.filters{background:#fff;border-radius:10px;border:1px solid #e1e0d9;padding:14px 16px;margin-bottom:20px;}
-.f-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#52514e;margin-bottom:10px;}
-.f-hint{font-size:10px;color:#aaa;margin-top:10px;}
-.f-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
-.f-lbl{font-size:11px;color:#888;margin-bottom:5px;}
-.chip-wrap{display:flex;flex-wrap:wrap;gap:4px;}
-.chip{font-size:11px;padding:3px 10px;border-radius:10px;cursor:pointer;border:1px solid #d3d1c7;background:#fff;color:#52514e;font-weight:500;}
-.chip.on{background:#1f3a5f;border-color:#1f3a5f;color:#fff;}
-.chip:hover{background:#f1efe8;}.chip.on:hover{background:#2a4f7a;}
-.tabs{display:flex;border-bottom:1px solid #e1e0d9;margin-bottom:16px;}
-.tab{font-size:13px;font-weight:500;padding:8px 18px;cursor:pointer;border:none;background:none;color:#52514e;border-bottom:2px solid transparent;margin-bottom:-1px;}
-.tab.act{color:#0b0b0b;border-bottom-color:#1f3a5f;}
-.panel{display:none;}.panel.vis{display:block;}
-.sec{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#888;margin:20px 0 8px;}
-.chart-wrap{background:#fff;border-radius:10px;border:1px solid #e1e0d9;padding:16px;margin-bottom:0;}
-.leg{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:10px;font-size:12px;color:#52514e;}
-.ldot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle;}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.insight-box{background:#fffef5;border:1px solid #e1e0d9;border-top:none;border-radius:0 0 10px 10px;padding:10px 16px 12px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;}
-.insight-icon{font-size:15px;margin-top:1px;flex-shrink:0;}
-.insight-text{font-size:13px;color:#3d3c38;line-height:1.65;flex:1;}
-.insight-btn{font-size:11px;padding:3px 10px;border-radius:6px;cursor:pointer;border:1px solid #d3d1c7;background:#fff;color:#52514e;flex-shrink:0;margin-top:2px;}
-.insight-btn:hover{background:#f1efe8;}.insight-btn:disabled{opacity:.5;}
-.warn-box{background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:12px;}
-.nota-box{background:#eef3fa;border:1px solid #b9cbe3;border-radius:6px;padding:8px 12px;font-size:12px;color:#1f3a5f;margin-bottom:12px;line-height:1.6;}
-.loading{text-align:center;padding:60px;color:#888;}
+html{-webkit-text-size-adjust:100%;}
+body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;}
+button,select,input{font:inherit;color:inherit;}
+.wrap{max-width:1360px;margin:0 auto;padding:0 24px 40px;}
+
+/* Header */
+.top{background:var(--surface);border-bottom:1px solid var(--border);position:relative;}
+.top::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:linear-gradient(90deg,var(--brand) 0 70%,var(--accent) 70% 100%);}
+.top-in{max-width:1360px;margin:0 auto;padding:16px 24px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.mark{display:flex;align-items:center;gap:10px;}
+.mark svg{flex:none;}
+.mark-word{font-weight:700;font-size:20px;letter-spacing:-.02em;color:var(--ink-brand);}
+.ttl{border-left:1px solid var(--border);padding-left:16px;}
+.ttl h1{font-size:18px;font-weight:650;letter-spacing:-.01em;}
+.ttl p{font-size:12.5px;color:var(--text-3);}
+.top-meta{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--text-3);flex-wrap:wrap;}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--brand-soft);color:var(--brand);border-radius:999px;padding:4px 10px;font-weight:600;font-size:12px;}
+.icon-btn{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:6px 10px;cursor:pointer;color:var(--text-2);}
+.icon-btn:hover{border-color:var(--border-strong);}
+
+/* Notes */
+.notes{margin:18px 0 0;background:var(--note-bg);border:1px solid var(--note-border);color:var(--note-fg);border-radius:10px;padding:10px 14px;font-size:13px;display:none;}
+.notes b{font-weight:650;}
+.notes ul{margin:4px 0 0 18px;}
+
+/* Filters */
+.filters{position:sticky;top:0;z-index:30;background:var(--bg);padding:14px 0 10px;margin-top:6px;}
+.fbar{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+.fg{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.fg label,.fg .lbl{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;}
+.sel{appearance:none;-webkit-appearance:none;border:1px solid var(--border-strong);background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23767a86' fill='none' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;border-radius:8px;padding:7px 28px 7px 10px;min-height:36px;cursor:pointer;max-width:100%;}
+.sel:focus-visible,.ms summary:focus-visible,.seg button:focus-visible,.tab:focus-visible,.btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+.range{display:flex;align-items:center;gap:6px;}
+.range span{color:var(--text-3);font-size:12px;}
+.ms{position:relative;}
+.ms summary{list-style:none;border:1px solid var(--border-strong);border-radius:8px;padding:7px 28px 7px 10px;min-height:36px;cursor:pointer;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23767a86' fill='none' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;white-space:nowrap;min-width:150px;max-width:230px;overflow:hidden;text-overflow:ellipsis;}
+.ms summary::-webkit-details-marker{display:none;}
+.ms[open] summary{border-color:var(--brand);}
+.ms.on summary{background-color:var(--brand-soft);color:var(--brand);border-color:var(--brand);font-weight:600;}
+.ms-panel{position:absolute;top:calc(100% + 6px);left:0;z-index:40;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 12px 32px rgba(16,24,40,.16);padding:8px;min-width:240px;max-height:340px;overflow:auto;}
+.ms-panel input[type=search]{width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-bottom:6px;background:var(--surface-2);}
+.ms-actions{display:flex;justify-content:space-between;padding:2px 4px 6px;border-bottom:1px solid var(--border);margin-bottom:4px;}
+.ms-actions button{border:0;background:none;color:var(--brand);font-size:12px;cursor:pointer;font-weight:600;}
+.ms-opt{display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:6px;cursor:pointer;font-size:13px;}
+.ms-opt:hover{background:var(--surface-2);}
+.ms-opt small{margin-left:auto;color:var(--text-3);}
+.ms-opt input{accent-color:var(--brand);width:15px;height:15px;}
+.seg{display:inline-flex;border:1px solid var(--border-strong);border-radius:8px;overflow:hidden;min-height:36px;}
+.seg button{border:0;background:var(--surface);padding:0 12px;cursor:pointer;color:var(--text-2);}
+.seg button.on{background:var(--brand);color:#fff;font-weight:600;}
+:root[data-theme="dark"] .seg button.on{color:#0f1117;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button.on{color:#0f1117;}}
+.btn{border:1px solid var(--border-strong);background:var(--surface);border-radius:8px;padding:0 12px;min-height:36px;cursor:pointer;color:var(--text-2);font-weight:600;}
+.btn:hover{border-color:var(--brand);color:var(--brand);}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;}
+.fspacer{flex:1;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:0;}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--brand-soft);color:var(--brand);border-radius:999px;padding:3px 4px 3px 10px;font-size:12px;font-weight:600;}
+.chip button{border:0;background:transparent;color:inherit;cursor:pointer;width:20px;height:20px;border-radius:50%;line-height:1;}
+.chip button:hover{background:rgba(15,32,138,.12);}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:6px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);min-width:0;}
+.kpi .k-l{font-size:12px;color:var(--text-3);font-weight:600;}
+.kpi .k-v{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kpi .k-s{font-size:12.5px;color:var(--text-2);margin-top:2px;}
+.kpi .k-s2{font-size:12px;color:var(--text-3);margin-top:2px;}
+.delta{font-weight:700;}
+.delta.pos{color:var(--pos);} .delta.neg{color:var(--neg);}
+.kpi.hero{border-top:3px solid var(--brand);}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin:22px 0 14px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+.tab{border:0;background:none;padding:10px 14px;cursor:pointer;color:var(--text-3);font-weight:600;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap;}
+.tab.on{color:var(--brand);border-bottom-color:var(--brand);}
+.tab .badge{display:inline-block;background:var(--pend-bg);color:var(--pend-fg);border-radius:999px;font-size:11px;padding:1px 7px;margin-left:6px;}
+.page{display:none;}
+.page.on{display:block;}
+
+/* Cards */
+.grid{display:grid;gap:14px;}
+.g2{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);}
+.g2e{grid-template-columns:repeat(2,minmax(0,1fr));}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;min-width:0;}
+.card h3{font-size:14.5px;font-weight:650;}
+.card .c-sub{font-size:12.5px;color:var(--text-3);margin-top:2px;}
+.card-h{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;}
+.card-h .r{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-2);}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;}
+.cw{position:relative;width:100%;}
+.hint{font-size:12px;color:var(--text-3);margin-top:8px;}
+.warn{background:var(--warn-bg);border:1px solid var(--warn-border);color:var(--warn-fg);border-radius:10px;padding:9px 12px;font-size:12.5px;margin-bottom:14px;}
+
+/* AI */
+.ai{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:12px;padding:12px 14px;margin-bottom:14px;box-shadow:var(--shadow);}
+.ai .ai-t{flex:1;font-size:13.5px;color:var(--text-2);min-height:20px;}
+.ai .ai-t b{color:var(--text);}
+.ai .btn{flex:none;}
+
+/* Tables */
+.tw{overflow:auto;border:1px solid var(--border);border-radius:10px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+th{position:sticky;top:0;background:var(--surface-2);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-3);font-weight:700;z-index:1;}
+th.s{cursor:pointer;user-select:none;}
+th.s:hover{color:var(--brand);}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;}
+tbody tr:hover{background:var(--surface-2);}
+tbody tr.click{cursor:pointer;}
+tfoot td{font-weight:700;background:var(--surface-2);}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:1px;}
+.tag.new{background:var(--brand-soft);color:var(--brand);}
+.tag.off{background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);}
+.bar-cell{display:flex;align-items:center;gap:8px;}
+.bar-cell .b{height:6px;border-radius:3px;background:var(--brand);min-width:2px;}
+.pager{display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:10px;font-size:12.5px;color:var(--text-3);}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.tools input[type=search]{border:1px solid var(--border-strong);border-radius:8px;padding:7px 10px;min-height:36px;background:var(--surface);min-width:220px;}
+
+/* Compliance */
+.comp td,.comp th{text-align:center;}
+.comp td:first-child,.comp th:first-child,.comp td:nth-child(2),.comp th:nth-child(2){text-align:left;}
+.st{display:inline-flex;align-items:center;justify-content:center;gap:4px;border-radius:6px;font-size:11.5px;font-weight:700;padding:3px 7px;min-width:34px;}
+.st.ok{background:var(--ok-bg);color:var(--ok-fg);}
+.st.pend{background:var(--pend-bg);color:var(--pend-fg);}
+.st.na{color:var(--na-fg);}
+.comp tr.grp td{background:var(--surface-2);font-weight:700;color:var(--text-2);text-align:left;}
+.sum-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.sum-row .kpi{flex:1;min-width:180px;}
+
+.loading{padding:60px;text-align:center;color:var(--text-3);}
+.empty{padding:28px;text-align:center;color:var(--text-3);font-size:13px;}
+.foot{margin-top:28px;font-size:12px;color:var(--text-3);line-height:1.6;}
+
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr));}.g2,.g2e{grid-template-columns:minmax(0,1fr);}}
+@media (max-width:640px){
+  .wrap{padding:0 16px 32px;} .top-in{padding:14px 16px 16px;}
+  .ttl{border-left:0;padding-left:0;width:100%;}
+  .top-meta{margin-left:0;}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .kpi .k-v{font-size:21px;}
+  .filters{position:static;}
+  .fg{flex:1 1 140px;}
+  .ms summary{min-width:0;max-width:none;}
+  .ms-panel{min-width:220px;max-width:calc(100vw - 48px);}
+  .tools input[type=search]{min-width:0;flex:1;}
+}
 </style>
 </head>
 <body>
-
-<div id="app-loading" class="loading">Cargando datos...</div>
-<div id="app" style="display:none;">
-
-<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
-  <h1>Sell out exportaciones</h1>
-  <span id="rng-label" style="font-size:12px;color:#888;"></span>
-</div>
-<p class="sub">Dashboard · Actualizado: <span id="fecha-act"></span></p>
-
-<div id="warn-parcial" class="warn-box" style="display:none;">
-  ⚠️ <span id="warn-txt"></span>
-</div>
-
-<div id="notas-datos" class="nota-box" style="display:none;"></div>
-
-<div class="filters">
-  <p class="f-title">Filtros</p>
-  <div class="f-grid">
-    <div><p class="f-lbl">Año</p><div class="chip-wrap" id="f-anio"></div></div>
-    <div><p class="f-lbl">País</p><div class="chip-wrap" id="f-pais"></div></div>
-    <div><p class="f-lbl">Mes</p><div class="chip-wrap" id="f-mes"></div></div>
-  </div>
-  <p class="f-hint">Selecciona 1 año para ver su evolución mes a mes · selecciona 2 o más para comparar años entre sí.</p>
-</div>
-
-<div class="kpi-row" id="kpi-row"></div>
-
-<div class="tabs">
-  <button class="tab act" onclick="showPage('resumen',this)">Resumen</button>
-  <button class="tab" onclick="showPage('pais',this)">Por país</button>
-  <button class="tab" onclick="showPage('cliente',this)">Por cliente</button>
-  <button class="tab" onclick="showPage('tendencia',this)">Tendencia</button>
-</div>
-
-<div id="pg-resumen" class="panel vis">
-  <div class="grid2">
-    <div>
-      <p class="sec" id="sec-anio-t">Venta total por año</p>
-      <div class="chart-wrap"><div style="position:relative;height:220px;"><canvas id="c-anio" role="img" aria-label="Venta por año"></canvas></div></div>
-      <div class="insight-box"><span class="insight-icon">💡</span><span class="insight-text" id="ins-anio"></span><button class="insight-btn" id="btn-anio" onclick="genInsight('anio')">↺ IA</button></div>
+<header class="top">
+  <div class="top-in">
+    <div class="mark" aria-label="Ideace">
+      <svg width="34" height="22" viewBox="0 0 34 22" aria-hidden="true"><path d="M2 20 L26 4 L26 12 Z" fill="#ffcc00"/><path d="M14 20 L32 8 L32 20 Z" fill="#0f208a"/></svg>
+      <span class="mark-word">Ideace</span>
     </div>
-    <div>
-      <p class="sec" id="sec-varA-t">Variación % año a año</p>
-      <div class="chart-wrap"><div style="position:relative;height:220px;"><canvas id="c-varA" role="img" aria-label="Variación anual"></canvas></div></div>
-      <div class="insight-box"><span class="insight-icon">💡</span><span class="insight-text" id="ins-varA"></span><button class="insight-btn" id="btn-varA" onclick="genInsight('varA')">↺ IA</button></div>
+    <div class="ttl">
+      <h1>Sell Out Exportaciones</h1>
+      <p>Lo que venden nuestros distribuidores de exportación a sus clientes, en dólares (USD)</p>
+    </div>
+    <div class="top-meta">
+      <span class="pill" id="m-hasta">Datos hasta —</span>
+      <span>Actualizado <b id="m-act">—</b></span>
+      <button class="icon-btn" id="theme-btn" type="button" title="Cambiar tema claro / oscuro" aria-label="Cambiar tema claro u oscuro">Tema claro / oscuro</button>
     </div>
   </div>
-  <p class="sec">Tendencia mensual</p>
-  <div class="chart-wrap">
-    <div class="leg" id="leg-mens"></div>
-    <div style="position:relative;height:240px;"><canvas id="c-mens" role="img" aria-label="Tendencia mensual"></canvas></div>
-  </div>
-  <div class="insight-box"><span class="insight-icon">💡</span><span class="insight-text" id="ins-mens"></span><button class="insight-btn" id="btn-mens" onclick="genInsight('mens')">↺ IA</button></div>
-</div>
+</header>
 
-<div id="pg-pais" class="panel">
-  <p class="sec" id="sec-pais-t">Venta por país</p>
-  <div class="chart-wrap" id="c-pais-wrap">
-    <div class="leg" id="leg-pais"><span><span class="ldot" style="background:#7f9cc4;"></span>Año anterior</span><span><span class="ldot" style="background:#1f3a5f;"></span>Año actual</span></div>
-    <div style="position:relative;height:320px;"><canvas id="c-pais" role="img" aria-label="Venta por país"></canvas></div>
-  </div>
-  <div id="pais-mens-bars" style="display:none;"></div>
-  <div class="insight-box"><span class="insight-icon">💡</span><span class="insight-text" id="ins-pais"></span><button class="insight-btn" id="btn-pais" onclick="genInsight('pais')">↺ IA</button></div>
-  <p class="sec">Participación por país</p>
-  <div class="chart-wrap" style="max-width:420px;">
-    <div style="position:relative;height:260px;"><canvas id="c-pie" role="img" aria-label="Participación por país"></canvas></div>
-  </div>
-  <p class="sec" id="sec-pais-mens-t">Tendencia mensual por país</p>
-  <div class="chart-wrap">
-    <div class="leg" id="leg-pais-mens"></div>
-    <div style="position:relative;height:280px;"><canvas id="c-pais-mens" role="img" aria-label="Tendencia mensual por país"></canvas></div>
-  </div>
-  <div class="insight-box"><span class="insight-icon">💡</span><span class="insight-text" id="ins-pais-mens"></span><button class="insight-btn" id="btn-pais-mens" onclick="genInsight('pais-mens')">↺ IA</button></div>
-</div>
+<main class="wrap">
+  <div class="notes" id="notes" role="note"></div>
 
-<div id="pg-cliente" class="panel">
-  <p class="sec">Venta por cliente</p>
-  <p id="cli-caveat" style="font-size:11px;color:#aaa;margin:-4px 0 8px;"></p>
-  <div class="chart-wrap">
-    <div class="leg" id="leg-cli"><span><span class="ldot" style="background:#7f9cc4;"></span>Año anterior</span><span><span class="ldot" style="background:#1f3a5f;"></span>Año actual</span></div>
-    <div style="position:relative;height:440px;"><canvas id="c-cli" role="img" aria-label="Venta por cliente"></canvas></div>
-  </div>
-  <div class="insight-box"><span class="insight-icon">💡</span><span class="insight-text" id="ins-cli"></span><button class="insight-btn" id="btn-cli" onclick="genInsight('cli')">↺ IA</button></div>
-</div>
+  <section class="filters" aria-label="Filtros">
+    <div class="fbar">
+      <div class="fg"><label for="f-anio">Año</label><select class="sel" id="f-anio"></select></div>
+      <div class="fg"><label for="f-comp">Comparar con</label><select class="sel" id="f-comp"></select></div>
+      <div class="fg"><span class="lbl">Meses</span>
+        <div class="range"><select class="sel" id="f-m1" aria-label="Desde el mes"></select><span>a</span><select class="sel" id="f-m2" aria-label="Hasta el mes"></select></div>
+      </div>
+      <div class="fg"><span class="lbl">País</span><details class="ms" id="ms-pais"><summary>Todos</summary><div class="ms-panel"></div></details></div>
+      <div class="fg"><span class="lbl">Cliente</span><details class="ms" id="ms-cli"><summary>Todos</summary><div class="ms-panel"></div></details></div>
+      <div class="fg"><span class="lbl">Línea</span><details class="ms" id="ms-lin"><summary>Todas</summary><div class="ms-panel"></div></details></div>
+      <div class="fg"><span class="lbl">Ver en</span><div class="seg" id="f-met"><button type="button" data-v="usd" class="on">USD</button><button type="button" data-v="und">Unidades</button></div></div>
+      <div class="fspacer"></div>
+      <button class="btn" id="f-reset" type="button">Limpiar filtros</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </section>
 
-<div id="pg-tendencia" class="panel">
-  <p class="sec">YTD acumulado</p>
-  <div class="chart-wrap">
-    <div class="leg" id="leg-ytd"></div>
-    <div style="position:relative;height:240px;"><canvas id="c-ytd" role="img" aria-label="YTD acumulado"></canvas></div>
-  </div>
-  <div class="insight-box"><span class="insight-icon">💡</span><span class="insight-text" id="ins-ytd"></span><button class="insight-btn" id="btn-ytd" onclick="genInsight('ytd')">↺ IA</button></div>
-  <p class="sec" id="sec-var-t">Variación % mensual — año actual vs anterior</p>
-  <div class="chart-wrap">
-    <div style="position:relative;height:200px;"><canvas id="c-var" role="img" aria-label="Variación mensual"></canvas></div>
-  </div>
-  <div class="insight-box"><span class="insight-icon">💡</span><span class="insight-text" id="ins-var"></span><button class="insight-btn" id="btn-var" onclick="genInsight('var')">↺ IA</button></div>
-</div>
-
-</div>
+  <div id="app"><div class="loading">Cargando datos…</div></div>
+</main>
 
 <script>
-const MESES=["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
-const MESES_S=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-const PIE_COLS=["#2a78d6","#eb6834","#1baf7a","#eda100","#e87ba4","#008300","#6250d6"];
-const LEG_INTER='<span><span class="ldot" style="background:#7f9cc4;"></span>Año anterior</span><span><span class="ldot" style="background:#1f3a5f;"></span>Año actual</span>';
-const YEAR_COLS=["#1f3a5f","#7f9cc4","#e08a2e","#2e9e6b","#9a9a9a","#b04a8c"];
-const PAIS_LINE_COLS=["#1f3a5f","#378add","#0ca30c","#eda100","#d03b3b","#6250d6","#e87ba4","#008300","#eb6834","#85b7eb"];
+/* ============================================================
+   Sell Out Exportaciones — dashboard
+   Datos: data/sellout.json (generado por exportar_json.py)
+   IA:    POST /api/analyze {prompt} -> {text}
+   ============================================================ */
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+let D=null, R=[], ANIOS=[], INFO={}, SIN='Sin desglose por línea';
+const F={anio:null,comp:null,m1:0,m2:11,paises:new Set(),clientes:new Set(),lineas:new Set(),met:'usd'};
+const CH={};               // instancias Chart.js
+let TAB='resumen';
+const det={sort:'usd',dir:-1,page:0,q:''};
 
-let DATA={}, ANIOS=[], PAISES=[], CLIENTES=[], MESES_CON_DATO=new Set();
-let selAnios=new Set(), selPaises=new Set(), selMeses=new Set(MESES);
-let charts={};
+/* ---------- formato ---------- */
+const nf0=new Intl.NumberFormat('es-CO',{maximumFractionDigits:0});
+const nf1=new Intl.NumberFormat('es-CO',{minimumFractionDigits:1,maximumFractionDigits:1});
+const nf2=new Intl.NumberFormat('es-CO',{minimumFractionDigits:2,maximumFractionDigits:2});
+function usdK(v){ // compacto: $2,21 M / $239 mil / $850
+  if(v==null||isNaN(v))return '—';
+  const a=Math.abs(v), s=v<0?'-':'';
+  if(a>=1e6)return s+'$'+nf2.format(a/1e6)+' M';
+  if(a>=1e4)return s+'$'+nf0.format(a/1e3)+' mil';
+  if(a>=1e3)return s+'$'+nf1.format(a/1e3)+' mil';
+  return s+'$'+nf0.format(a);
+}
+const usd=v=>v==null||isNaN(v)?'—':'$'+nf0.format(v);
+const und=v=>v==null||isNaN(v)?'—':nf0.format(v);
+const undK=v=>{if(v==null)return '—';const a=Math.abs(v);return a>=1e6?nf2.format(v/1e6)+' M':a>=1e4?nf0.format(v/1e3)+' mil':nf0.format(v);};
+const pct=v=>v==null||!isFinite(v)?'—':(v>=0?'+':'')+nf1.format(v*100)+'%';
+const pctPlain=v=>v==null||!isFinite(v)?'—':nf1.format(v*100)+'%';
+const tc=s=>String(s).toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase()).replace(/ (Y|De|Del|La|El) /g,m=>m.toLowerCase());
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function deltaHtml(a,b){ if(!b)return '<span class="k-s2">sin base de comparación</span>'; const v=a/b-1; return `<span class="delta ${v>=0?'pos':'neg'}">${v>=0?'▲':'▼'} ${pct(v)}</span>`; }
 
+/* ---------- carga ---------- */
 async function init(){
   try{
-    const r=await fetch('/data/sellout.json');
-    DATA=await r.json();
-    ANIOS=Object.keys(DATA.mensual).map(Number).sort();
-    PAISES=Object.keys(DATA.paises).sort();
-    CLIENTES=Object.keys(DATA.clientes);
-    const ultimoMesIdx=MESES.indexOf(DATA.ultimo_mes);
-    MESES_CON_DATO=new Set(MESES.slice(0,ultimoMesIdx+1));
-    selAnios=new Set([ANIOS[ANIOS.length-2],ANIOS[ANIOS.length-1]].filter(Boolean));
-    selPaises=new Set(PAISES);
-    selMeses=new Set(MESES);
-    document.getElementById('fecha-act').textContent=DATA.ultima_actualizacion;
-    renderNotas();
-    document.getElementById('app-loading').style.display='none';
-    document.getElementById('app').style.display='block';
-    refresh();
-  }catch(e){
-    document.getElementById('app-loading').textContent='Error cargando datos: '+e.message;
-  }
+    const r=await fetch('data/sellout.json',{cache:'no-store'});
+    D=await r.json();
+  }catch(e){document.getElementById('app').innerHTML='<div class="empty">No se pudieron cargar los datos (data/sellout.json).</div>';return;}
+  SIN=D.sin_desglose||SIN; INFO=D.clientes_info||{};
+  const k=D.campos_registros;
+  R=D.registros.map(x=>({a:x[0],m:x[1],p:x[2],c:x[3],l:x[4],u:x[5],n:x[6]}));
+  ANIOS=[...new Set(R.map(r=>r.a))].sort((a,b)=>a-b);
+  F.anio=D.ultimo_anio; F.comp=D.ultimo_anio-1;
+  const um=MESES.findIndex(m=>m.toUpperCase()===D.ultimo_mes); F.m1=0; F.m2=um<0?11:um;
+  document.getElementById('m-hasta').textContent='Datos hasta '+MESES[F.m2].toLowerCase()+' '+D.ultimo_anio;
+  document.getElementById('m-act').textContent=D.ultima_actualizacion;
+  renderNotes(); buildFilters(); buildApp(); refresh();
 }
 
-// avisos de datos definidos en exportar_json.py (NOTAS) -- ej. clientes que dejaron de reportar
-function renderNotas(){
-  const notas=DATA.notas||[];
-  const el=document.getElementById('notas-datos');
-  if(!notas.length){el.style.display='none';return;}
-  el.innerHTML='<strong>ℹ️ Nota sobre los datos:</strong> '+notas.map(n=>String(n).replace(/</g,'&lt;')).join('<br>');
+function renderNotes(){
+  const el=document.getElementById('notes'); const n=D.notas||[];
+  if(!n.length){el.style.display='none';return;}
+  el.innerHTML='<b>Nota sobre los datos</b>'+(n.length>1?'<ul>'+n.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'<div>'+esc(n[0])+'</div>');
   el.style.display='block';
 }
-function $k(v){if(v>=1000000)return'$'+(v/1000000).toFixed(2)+'M';if(v>=1000)return'$'+(v/1000).toFixed(0)+'K';return'$'+Math.round(v);}
-function sgn(v){return v>=0?'+':'';}
-function pct(a,b){return a?((b-a)/a*100):null;}
-function upd(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),cfg);}
-function ins(id,txt){const el=document.getElementById(id);if(el)el.textContent=txt;}
 
-// texto de insight para el modo de barras mensuales por país (países filtrados, no todos)
-function insightPaisMensualBarras(anio,mc,paises){
-  if(!paises.length){ins('ins-pais','Selecciona al menos un país en los filtros.');return;}
-  const partes=paises.map(p=>{
-    const serie=DATA.mensual_paises?.[p]?.[anio]||[];
-    const vals=mc.map(m=>({m,v:serie[MESES.indexOf(m)]||0}));
-    const tot=vals.reduce((s,x)=>s+x.v,0);
-    const mejor=vals.reduce((a,b)=>b.v>a.v?b:a,vals[0]);
-    return `${p}: ${$k(tot)} total, mejor mes ${MESES_S[MESES.indexOf(mejor.m)]} (${$k(mejor.v)})`;
-  });
-  ins('ins-pais',partes.join(' · '));
+/* ---------- filtros ---------- */
+function opt(v,t,s){return `<option value="${v}"${s?' selected':''}>${t}</option>`;}
+function buildFilters(){
+  const fa=document.getElementById('f-anio'), fc=document.getElementById('f-comp');
+  fa.innerHTML=[...ANIOS].reverse().map(a=>opt(a,a,a===F.anio)).join('');
+  const fillComp=()=>{fc.innerHTML=opt('','Sin comparación',F.comp==null)+[...ANIOS].reverse().filter(a=>a!==F.anio).map(a=>opt(a,a+(a===F.anio-1?' (año anterior)':''),a===F.comp)).join('');};
+  fillComp();
+  const m1=document.getElementById('f-m1'), m2=document.getElementById('f-m2');
+  const fillM=()=>{m1.innerHTML=MS.map((m,i)=>opt(i,m,i===F.m1)).join('');m2.innerHTML=MS.map((m,i)=>opt(i,m,i===F.m2)).join('');};
+  fillM();
+  fa.onchange=()=>{F.anio=+fa.value; if(F.comp===F.anio||F.comp==null&&false)F.comp=F.anio-1; if(!ANIOS.includes(F.comp))F.comp=ANIOS.includes(F.anio-1)?F.anio-1:null;
+    F.m2=F.anio===D.ultimo_anio?MESES.findIndex(m=>m.toUpperCase()===D.ultimo_mes):11; if(F.m1>F.m2)F.m1=0; fillComp(); fillM(); refresh();};
+  fc.onchange=()=>{F.comp=fc.value===''?null:+fc.value;refresh();};
+  m1.onchange=()=>{F.m1=+m1.value;if(F.m1>F.m2){F.m2=F.m1;m2.value=F.m2;}refresh();};
+  m2.onchange=()=>{F.m2=+m2.value;if(F.m2<F.m1){F.m1=F.m2;m1.value=F.m1;}refresh();};
+  document.querySelectorAll('#f-met button').forEach(b=>b.onclick=()=>{F.met=b.dataset.v;document.querySelectorAll('#f-met button').forEach(x=>x.classList.toggle('on',x===b));refresh();});
+  document.getElementById('f-reset').onclick=resetFilters;
+  document.getElementById('theme-btn').onclick=toggleTheme;
+  document.addEventListener('click',e=>{document.querySelectorAll('details.ms[open]').forEach(d=>{if(!d.contains(e.target))d.open=false;});});
+  document.querySelectorAll('details.ms').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)document.querySelectorAll('details.ms[open]').forEach(o=>{if(o!==d)o.open=false;});}));
+  buildMS();
 }
-// dibuja una gráfica de barras (una por país) con la venta mes a mes de cada país
-function renderPaisMensualBarras(anio,mc,paises){
-  const cont=document.getElementById('pais-mens-bars');
-  // destruir gráficos previos de este bloque antes de reconstruir el HTML
-  Object.keys(charts).filter(k=>k.startsWith('c-pais-bar-')).forEach(k=>{charts[k].destroy();delete charts[k];});
-  if(!paises.length){
-    cont.innerHTML='<p style="font-size:12px;color:#aaa;padding:8px 0;">Selecciona al menos un país en los filtros.</p>';
-    return;
-  }
-  cont.innerHTML=paises.map((p,i)=>`
-    <p class="sec"${i===0?' style="margin-top:0;"':''}>${p}</p>
-    <div class="chart-wrap"><div style="position:relative;height:200px;"><canvas id="c-pais-bar-${i}"></canvas></div></div>
-  `).join('');
-  paises.forEach((p,i)=>{
-    const serie=DATA.mensual_paises?.[p]?.[anio]||[];
-    const vals=mc.map(m=>serie[MESES.indexOf(m)]||0);
-    upd(`c-pais-bar-${i}`,{type:'bar',data:{labels:mc.map(m=>MESES_S[MESES.indexOf(m)]),datasets:[{data:vals,backgroundColor:PAIS_LINE_COLS[i%PAIS_LINE_COLS.length],borderRadius:4}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>$k(c.parsed.y)}}},scales:{x:{ticks:{color:'#52514e'},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
-  });
+function resetFilters(){
+  F.paises.clear();F.clientes.clear();F.lineas.clear();
+  F.anio=D.ultimo_anio;F.comp=D.ultimo_anio-1;F.m1=0;F.m2=MESES.findIndex(m=>m.toUpperCase()===D.ultimo_mes);
+  buildFilters();refresh();
 }
-// dibuja una línea por país (venta mensual real de cada país) para un año dado
-function renderPaisTendencia(anio,mc,paises){
-  const cols=PAIS_LINE_COLS;
-  const ds=paises.map((p,i)=>({
-    label:p,
-    data:MESES.map((m,mi)=>{
-      if(!mc.includes(m))return null;
-      const serie=DATA.mensual_paises?.[p]?.[anio];
-      return serie?(serie[mi]??0):null;
-    }),
-    borderColor:cols[i%cols.length],pointBackgroundColor:cols[i%cols.length],
-    borderWidth:2,pointRadius:2,tension:0.3,fill:false
-  }));
-  document.getElementById('leg-pais-mens').innerHTML=paises.map((p,i)=>`<span><span class="ldot" style="background:${cols[i%cols.length]}"></span>${p}</span>`).join('')||'<span style="color:#aaa;">Sin países seleccionados</span>';
-  upd('c-pais-mens',{type:'line',data:{labels:MESES_S,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y?`${c.dataset.label}: ${$k(c.parsed.y)}`:null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
+function visibleClients(){ // clientes activos (no ocultos), filtrados por país
+  const all=[...new Set([...R.map(r=>r.c),...Object.keys(INFO)])].filter(c=>!(INFO[c]&&INFO[c].oculto));
+  return all.filter(c=>!F.paises.size||F.paises.has(INFO[c]?.pais||paisDe(c))).sort((a,b)=>a.localeCompare(b,'es'));
 }
-// mayor crecimiento mes a mes (primer mes seleccionado vs último) entre los países dados
-function insightPaisTendencia(anio,mc,paises){
-  if(!paises.length||mc.length<2){ins('ins-pais-mens','Selecciona al menos 2 meses y 1 país para comparar tendencias.');return;}
-  const cr=paises.map(p=>{
-    const serie=DATA.mensual_paises?.[p]?.[anio]||[];
-    const first=serie[MESES.indexOf(mc[0])]||0,last=serie[MESES.indexOf(mc[mc.length-1])]||0;
-    return{p,pct:pct(first,last)};
-  }).filter(x=>x.pct!==null);
-  if(!cr.length){ins('ins-pais-mens',`Evolución mensual por país en ${anio}, ${MESES_S[MESES.indexOf(mc[0])]}–${MESES_S[MESES.indexOf(mc[mc.length-1])]}.`);return;}
-  const top=cr.reduce((a,b)=>b.pct>a.pct?b:a),bot=cr.reduce((a,b)=>b.pct<a.pct?b:a);
-  ins('ins-pais-mens',`Mayor crecimiento ${MESES_S[MESES.indexOf(mc[0])]}→${MESES_S[MESES.indexOf(mc[mc.length-1])]}: ${top.p} (${sgn(top.pct)}${top.pct.toFixed(1)}%). ${bot.pct<0?`Mayor caída: ${bot.p} (${bot.pct.toFixed(1)}%).`:''}`);
+const _pc={}; function paisDe(c){if(_pc[c])return _pc[c];const r=R.find(x=>x.c===c);return _pc[c]=r?r.p:'';}
+function msBuild(id,items,set,allLabel,counts){
+  const d=document.getElementById(id), panel=d.querySelector('.ms-panel');
+  panel.innerHTML=`${items.length>7?'<input type="search" placeholder="Buscar…" aria-label="Buscar">':''}
+    <div class="ms-actions"><button type="button" data-a="all">Seleccionar todos</button><button type="button" data-a="none">Quitar selección</button></div>
+    ${items.map(it=>`<label class="ms-opt" data-t="${esc(it.t.toLowerCase())}"><input type="checkbox" value="${esc(it.v)}"${set.has(it.v)?' checked':''}>${esc(it.t)}${it.s?`<small>${esc(it.s)}</small>`:''}</label>`).join('')}`;
+  const sum=d.querySelector('summary');
+  const upd=()=>{sum.textContent=!set.size?allLabel:set.size===1?items.find(i=>i.v===[...set][0])?.t||[...set][0]:set.size+' seleccionados';d.classList.toggle('on',set.size>0);};
+  upd();
+  panel.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>{cb.checked?set.add(cb.value):set.delete(cb.value);upd();onMS(id);});
+  panel.querySelector('[data-a=all]').onclick=()=>{set.clear();upd();onMS(id);msRefreshChecks(panel,set);};
+  panel.querySelector('[data-a=none]').onclick=()=>{set.clear();upd();onMS(id);msRefreshChecks(panel,set);};
+  const s=panel.querySelector('input[type=search]'); if(s)s.oninput=()=>{const q=s.value.toLowerCase();panel.querySelectorAll('.ms-opt').forEach(o=>o.style.display=o.dataset.t.includes(q)?'':'none');};
 }
-
-// meses considerados para un solo año (respeta filtro de mes y, si es el año en curso, corta en el último mes con dato)
-function getMesesIntra(anio){
-  const tiene=anio===DATA.ultimo_anio;
-  return MESES.filter(m=>selMeses.has(m)&&(!tiene||MESES_CON_DATO.has(m)));
+function msRefreshChecks(panel,set){panel.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=set.has(cb.value));}
+function buildMS(){
+  const paises=[...new Set(R.map(r=>r.p))].sort((a,b)=>a.localeCompare(b,'es'));
+  msBuild('ms-pais',paises.map(p=>({v:p,t:tc(p)})),F.paises,'Todos');
+  const cl=visibleClients(); [...F.clientes].forEach(c=>{if(!cl.includes(c))F.clientes.delete(c);});
+  msBuild('ms-cli',cl.map(c=>({v:c,t:c,s:tc(INFO[c]?.pais||paisDe(c))})),F.clientes,'Todos');
+  const lin=[...new Set(R.map(r=>r.l))].filter(l=>l!==SIN).sort((a,b)=>a.localeCompare(b,'es'));
+  msBuild('ms-lin',lin.map(l=>({v:l,t:tc(l)})),F.lineas,'Todas');
 }
-// meses considerados para comparación entre años (modo inter)
-function getMesesComp(){
-  const tiene2026=ANIOS.filter(a=>selAnios.has(a)).includes(DATA.ultimo_anio);
-  return MESES.filter(m=>selMeses.has(m)&&(!tiene2026||MESES_CON_DATO.has(m)));
+function onMS(id){ if(id==='ms-pais'){const cl=visibleClients();msBuild('ms-cli',cl.map(c=>({v:c,t:c,s:tc(INFO[c]?.pais||paisDe(c))})),F.clientes,'Todos');[...F.clientes].forEach(c=>{if(!cl.includes(c))F.clientes.delete(c);});} refresh(); }
+function toggleFilter(kind,val){
+  const set=kind==='pais'?F.paises:kind==='cli'?F.clientes:F.lineas;
+  set.has(val)?set.delete(val):set.add(val);
+  buildMS(); refresh();
+}
+function renderChips(){
+  const c=[]; const add=(k,v,t)=>c.push(`<span class="chip">${esc(t)}<button type="button" aria-label="Quitar filtro ${esc(t)}" data-k="${k}" data-v="${esc(v)}">×</button></span>`);
+  F.paises.forEach(p=>add('pais',p,tc(p))); F.clientes.forEach(x=>add('cli',x,x)); F.lineas.forEach(l=>add('lin',l,tc(l)));
+  const el=document.getElementById('chips'); el.innerHTML=c.join('');
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>toggleFilter(b.dataset.k,b.dataset.v));
 }
 
-function getVentaAnio(anio,mc){
-  const meses=mc||getMesesComp();
-  return Math.round(getSerieMensual(anio).reduce((s,v,i)=>s+(meses.includes(MESES[i])?v:0),0));
+/* ---------- datos filtrados ---------- */
+function base(r,{ignoreYear=false,ignoreMonths=false,ignoreCli=false,ignoreLin=false}={}){
+  if(!ignoreMonths&&(r.m<F.m1||r.m>F.m2))return false;
+  if(F.paises.size&&!F.paises.has(r.p))return false;
+  if(!ignoreCli&&F.clientes.size&&!F.clientes.has(r.c))return false;
+  if(!ignoreLin&&F.lineas.size&&!F.lineas.has(r.l))return false;
+  return true;
 }
-// serie mensual (12 valores) respetando el filtro de País: si hay países seleccionados
-// de forma parcial, suma solo esos países usando el desglose real mensual_paises.
-function getSerieMensual(anio){
-  if(selPaises.size===0)return MESES.map(()=>0);
-  if(selPaises.size===PAISES.length)return DATA.mensual[anio]||MESES.map(()=>0);
-  const acc=MESES.map(()=>0);
-  PAISES.filter(p=>selPaises.has(p)).forEach(p=>{
-    const serie=DATA.mensual_paises?.[p]?.[anio];
-    if(serie)serie.forEach((v,i)=>acc[i]+=v);
-  });
-  return acc;
+const rowsY=(y,o)=>R.filter(r=>r.a===y&&base(r,o));
+const val=r=>F.met==='usd'?r.u:r.n;
+const sum=(rows,f=val)=>rows.reduce((s,r)=>s+f(r),0);
+function groupSum(rows,key,f=val){const m=new Map();rows.forEach(r=>{const k=typeof key==='function'?key(r):r[key];m.set(k,(m.get(k)||0)+f(r));});return m;}
+function precio(rows){ // USD/unidad solo con filas que traen USD y unidades
+  let u=0,n=0; rows.forEach(r=>{if(r.u>0&&r.n>0){u+=r.u;n+=r.n;}}); return n?u/n:null;
 }
-// texto del filtro de país activo, o null si están todos seleccionados (sin filtro)
-function paisFiltroLabel(){
-  if(selPaises.size===0)return 'sin país seleccionado';
-  if(selPaises.size===PAISES.length)return null;
-  const arr=PAISES.filter(p=>selPaises.has(p));
-  return arr.length===1?arr[0]:`${arr.length} países`;
+function coberturaLinea(rows){const t=sum(rows,r=>r.u);const d=sum(rows.filter(r=>r.l!==SIN),r=>r.u);return t?d/t:null;}
+function coberturaUnd(rows){ // % de la venta USD de clientes-mes que reportan unidades
+  const cm=new Map(); rows.forEach(r=>{const k=r.c+'|'+r.a+'|'+r.m;const o=cm.get(k)||{u:0,n:0};o.u+=r.u;o.n+=r.n;cm.set(k,o);});
+  let t=0,c=0; cm.forEach(o=>{t+=o.u;if(o.n>0)c+=o.u;}); return t?c/t:null;
 }
-// venta últimos 12 meses (respeta filtro de país)
-function getLTM(){
-  const idx=MESES.indexOf(DATA.ultimo_mes);
-  const serieAct=getSerieMensual(DATA.ultimo_anio);
-  const seriePrev=getSerieMensual(DATA.ultimo_anio-1);
-  let total=0;
-  for(let i=idx+1;i<12;i++)total+=seriePrev[i]||0;
-  for(let i=0;i<=idx;i++)total+=serieAct[i]||0;
-  return Math.round(total);
-}
-function getVentaPais(pais,anio,mc){
-  const meses=mc||getMesesComp();
-  const mensual=DATA.mensual_paises?.[pais]?.[anio];
-  if(mensual)return Math.round(mensual.reduce((s,v,i)=>s+(meses.includes(MESES[i])?v:0),0));
-  // fallback (json exportado con una versión anterior de exportar_json.py, sin desglose mensual)
-  return Math.round((DATA.paises[pais]?.[anio]||0)*meses.length/12);
-}
-function getVentaCli(cli,anio,mc){
-  const meses=mc||getMesesComp();
-  const mensual=DATA.mensual_clientes?.[cli]?.[anio];
-  if(mensual)return Math.round(mensual.reduce((s,v,i)=>s+(meses.includes(MESES[i])?v:0),0));
-  // fallback (json exportado con una versión anterior de exportar_json.py, sin desglose mensual)
-  return Math.round((DATA.clientes[cli]?.[anio]||0)*meses.length/12);
-}
+const perLbl=()=>F.m1===0&&F.m2===11?'año completo':F.m1===F.m2?MS[F.m1]:MS[F.m1]+'–'+MS[F.m2];
+const metLbl=()=>F.met==='usd'?'USD':'unidades';
+const fmtMet=v=>F.met==='usd'?usdK(v):undK(v);
+const fmtMetFull=v=>F.met==='usd'?usd(v):und(v);
+const isHidden=c=>!!(INFO[c]&&INFO[c].oculto);
 
-function buildChips(id,items,sel,isNum,minOne){
-  const c=document.getElementById(id);c.innerHTML='';
-  const all=document.createElement('button');
-  all.className='chip'+(sel.size===items.length?' on':'');
-  all.textContent='Todo';
-  all.onclick=()=>{
-    if(sel.size===items.length){
-      sel.clear();
-      if(minOne)items.slice(-1).forEach(x=>sel.add(isNum?+x:x));
-    }else{
-      items.forEach(x=>sel.add(isNum?+x:x));
-    }
-    refresh();
-  };
-  c.appendChild(all);
-  items.forEach(it=>{
-    const k=isNum?+it:it;
-    const b=document.createElement('button');
-    b.className='chip'+(sel.has(k)?' on':'');
-    b.textContent=isNum?it:(String(it).length>10?String(it).substring(0,10)+'…':it);
-    b.title=String(it);
-    b.onclick=()=>{
-      if(sel.has(k)){
-        if(minOne&&sel.size===1)return;
-        sel.delete(k);
-      }else{
-        sel.add(k);
-      }
-      refresh();
-    };
-    c.appendChild(b);
-  });
-}
+/* ---------- estructura ---------- */
+function buildApp(){
+  const pend=pendientesUltimoMes();
+  document.getElementById('app').innerHTML=`
+  <section class="kpis" id="kpis" aria-label="Indicadores"></section>
+  <nav class="tabs" role="tablist">
+    <button class="tab on" data-t="resumen" role="tab">Resumen</button>
+    <button class="tab" data-t="paises" role="tab">Países y clientes</button>
+    <button class="tab" data-t="lineas" role="tab">Líneas de producto</button>
+    <button class="tab" data-t="cumpl" role="tab">Cumplimiento de reporte${pend.length?`<span class="badge">${pend.length} pendiente${pend.length>1?'s':''}</span>`:''}</button>
+    <button class="tab" data-t="detalle" role="tab">Detalle</button>
+  </nav>
 
+  <section class="page on" id="pg-resumen">
+    ${aiBox('resumen')}
+    <div class="grid g2">
+      <div class="card"><div class="card-h"><div><h3 id="t-mens">Venta mensual</h3><p class="c-sub" id="s-mens"></p></div><div class="r legend" id="lg-mens"></div></div><div class="cw" style="height:300px"><canvas id="c-mens" role="img" aria-label="Venta mensual comparada con el año anterior"></canvas></div></div>
+      <div class="card"><div class="card-h"><div><h3>Mismo período, año contra año</h3><p class="c-sub" id="s-anual"></p></div></div><div class="cw" style="height:300px"><canvas id="c-anual" role="img" aria-label="Venta del mismo período en cada año"></canvas></div></div>
+    </div>
+    <div class="grid g2e" style="margin-top:14px">
+      <div class="card"><div class="card-h"><div><h3>Acumulado del año</h3><p class="c-sub" id="s-acum"></p></div><div class="r legend" id="lg-acum"></div></div><div class="cw" style="height:260px"><canvas id="c-acum" role="img" aria-label="Venta acumulada del año"></canvas></div></div>
+      <div class="card"><div class="card-h"><div><h3>Qué explica la variación</h3><p class="c-sub">Cambio por cliente frente al período de comparación</p></div></div><div id="movers"></div></div>
+    </div>
+  </section>
+
+  <section class="page" id="pg-paises">
+    ${aiBox('paises')}
+    <div class="grid g2e">
+      <div class="card"><div class="card-h"><div><h3>Por país</h3><p class="c-sub" id="s-pais"></p></div><div class="r legend lg-yr"></div></div><div class="cw" id="cw-pais"><canvas id="c-pais" role="img" aria-label="Venta por país"></canvas></div><p class="hint">Haz clic en una barra para filtrar por ese país.</p></div>
+      <div class="card"><div class="card-h"><div><h3>Por cliente</h3><p class="c-sub" id="s-cli"></p></div><div class="r legend lg-yr"></div></div><div class="cw" id="cw-cli"><canvas id="c-cli" role="img" aria-label="Venta por cliente"></canvas></div><p class="hint">Haz clic en una barra para filtrar por ese cliente.</p></div>
+    </div>
+    <div class="card" style="margin-top:14px"><div class="card-h"><div><h3>Tabla por cliente</h3><p class="c-sub">Participación y variación frente al período de comparación</p></div></div><div class="tw" id="tb-cli"></div></div>
+  </section>
+
+  <section class="page" id="pg-lineas">
+    <div id="lin-warn"></div>
+    ${aiBox('lineas')}
+    <div class="grid g2">
+      <div class="card"><div class="card-h"><div><h3>Por línea de producto</h3><p class="c-sub" id="s-lin"></p></div><div class="r legend lg-yr"></div></div><div class="cw" id="cw-lin"><canvas id="c-lin" role="img" aria-label="Venta por línea de producto"></canvas></div><p class="hint">Haz clic en una barra para filtrar por esa línea.</p></div>
+      <div class="card"><div class="card-h"><div><h3>Precio promedio por unidad</h3><p class="c-sub">USD ÷ unidades, solo con datos que traen ambos</p></div></div><div class="tw" id="tb-precio"></div></div>
+    </div>
+  </section>
+
+  <section class="page" id="pg-cumpl">
+    <div class="sum-row" id="cumpl-sum"></div>
+    <div class="card"><div class="card-h"><div><h3 id="t-cumpl">Reporte mensual por cliente</h3><p class="c-sub">Qué clientes ya enviaron su sell out cada mes, agrupado por asesora</p></div>
+      <div class="r legend"><span><span class="st ok">✓</span> Reportó</span><span><span class="st pend">Pendiente</span></span><span><span class="st na">—</span> Aún no era cliente</span></div></div>
+      <div class="tw" id="tb-cumpl"></div></div>
+  </section>
+
+  <section class="page" id="pg-detalle">
+    <div class="card"><div class="card-h"><div><h3>Detalle</h3><p class="c-sub" id="s-det"></p></div>
+      <div class="r tools"><input type="search" id="det-q" placeholder="Buscar cliente, país o línea…" aria-label="Buscar en el detalle"><button class="btn primary" id="det-xl" type="button">Descargar Excel</button></div></div>
+      <div class="tw" style="max-height:560px" id="tb-det"></div>
+      <div class="pager" id="det-pg"></div></div>
+  </section>
+  <p class="foot">Sell out = venta que reportan los distribuidores a sus clientes finales; no es la facturación de Ideace. Solo datos reales reportados (los meses sin reporte no se estiman). VIDUC y F. Jenny ya no son clientes: suman en los totales históricos, pero no aparecen en las vistas por cliente. Las comparaciones usan siempre el mismo rango de meses en ambos años.</p>`;
+  document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{TAB=b.dataset.t;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='pg-'+TAB));refresh();});
+  document.getElementById('det-q').oninput=e=>{det.q=e.target.value.toLowerCase();det.page=0;renderDetalle();};
+  document.getElementById('det-xl').onclick=exportXlsx;
+}
+function aiBox(id){return `<div class="ai"><div class="ai-t" id="ai-${id}"></div><button class="btn" type="button" id="aib-${id}" onclick="genAI('${id}')">✦ Analizar con IA</button></div>`;}
+
+/* ---------- refresco ---------- */
 function refresh(){
-  buildChips('f-anio',ANIOS,selAnios,true,true);
-  buildChips('f-pais',PAISES,selPaises,false);
-  buildChips('f-mes',MESES,selMeses,false);
-
-  const anios=ANIOS.filter(a=>selAnios.has(a));
-  if(anios.length<=1){
-    refreshIntra(anios[0]);
-  }else{
-    refreshInter(anios);
-  }
+  if(!D)return;
+  renderChips(); renderKPIs();
+  if(TAB==='resumen')renderResumen();
+  if(TAB==='paises')renderPaises();
+  if(TAB==='lineas')renderLineas();
+  if(TAB==='cumpl')renderCumpl();
+  if(TAB==='detalle')renderDetalle();
 }
 
-/* ---------- MODO INTRA-AÑO (un solo año seleccionado) ---------- */
+/* ---------- KPIs ---------- */
+function renderKPIs(){
+  const A=rowsY(F.anio), B=F.comp!=null?rowsY(F.comp):null;
+  const uA=sum(A,r=>r.u), uB=B?sum(B,r=>r.u):null;
+  const nA=sum(A,r=>r.n), nB=B?sum(B,r=>r.n):null;
+  const pA=precio(A), pB=B?precio(B):null;
+  // crecimiento con los mismos clientes (sin nuevos ni retirados)
+  let same='';
+  if(B){const ca=groupSum(A,'c',r=>r.u), cb=groupSum(B,'c',r=>r.u);
+    let sa=0,sb=0; ca.forEach((v,c)=>{if(cb.get(c)>0){sa+=v;sb+=cb.get(c);}});
+    const nuevos=[...ca.keys()].filter(c=>!(cb.get(c)>0)&&ca.get(c)>0);
+    if(sb&&nuevos.length)same=`<p class="k-s2">Mismos clientes: <b>${pct(sa/sb-1)}</b> (sin ${nuevos.join(', ')})</p>`;}
+  const cl=coberturaLinea(A), cu=coberturaUnd(A);
+  const pend=pendientesUltimoMes(), tot=Object.keys(D.reporte||{}).length;
+  const lastLbl=MESES[MESES.findIndex(m=>m.toUpperCase()===D.ultimo_mes)].toLowerCase();
+  const vs=B?` vs ${F.comp}`:'';
+  document.getElementById('kpis').innerHTML=`
+   <div class="kpi hero"><p class="k-l">Sell out · ${F.anio} · ${perLbl()}</p><p class="k-v" title="${usd(uA)}">${usdK(uA)}</p><p class="k-s">${B?deltaHtml(uA,uB)+' <span class="k-s2">'+vs+' ('+usdK(uB)+')</span>':'<span class="k-s2">sin comparación</span>'}</p>${same}</div>
+   <div class="kpi"><p class="k-l">Unidades</p><p class="k-v">${undK(nA)}</p><p class="k-s">${B?deltaHtml(nA,nB)+' <span class="k-s2">'+vs+'</span>':''}</p><p class="k-s2">${pctPlain(cu)} de la venta reporta unidades</p></div>
+   <div class="kpi"><p class="k-l">Precio promedio por unidad</p><p class="k-v">${pA!=null?'$'+nf2.format(pA):'—'}</p><p class="k-s">${B&&pA&&pB?deltaHtml(pA,pB)+' <span class="k-s2">'+vs+'</span>':''}</p><p class="k-s2">USD ÷ unidades</p></div>
+   <div class="kpi"><p class="k-l">Desglose por línea</p><p class="k-v">${pctPlain(cl)}</p><p class="k-s2">de la venta del período viene separada por línea de producto</p></div>
+   <div class="kpi"><p class="k-l">Reporte de ${lastLbl} ${D.ultimo_anio}</p><p class="k-v">${tot-pend.length} de ${tot}</p><p class="k-s2">${pend.length?'Pendientes: '+pend.join(', '):'Todos los clientes reportaron'}</p></div>`;
+}
+function pendientesUltimoMes(){const rep=D.reporte||{};return Object.keys(rep).filter(c=>rep[c][rep[c].length-1]==='pendiente');}
 
-function refreshIntra(anio){
-  document.getElementById('leg-pais').innerHTML=`<span><span class="ldot" style="background:#1f3a5f;"></span>${anio}</span>`;
-  document.getElementById('leg-cli').innerHTML=`<span><span class="ldot" style="background:#1f3a5f;"></span>${anio}</span>`;
+/* ---------- Chart.js base ---------- */
+function yrColor(y){ // año seleccionado = azul Ideace; comparación = azul claro; otros años = gris
+  if(y===F.anio)return css('--yr-5'); if(y===F.comp)return css('--yr-0'); return css('--yr-other');}
+function baseOpts(extra={}){
+  const grid=css('--grid'), t3=css('--text-3');
+  return Object.assign({responsive:true,maintainAspectRatio:false,animation:{duration:250},
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:css('--surface'),titleColor:css('--text'),bodyColor:css('--text-2'),borderColor:css('--border-strong'),borderWidth:1,padding:10,boxPadding:4,usePointStyle:true,
+      callbacks:{label:c=>' '+c.dataset.label+': '+fmtMetFull(c.parsed.y??c.parsed.x)}}},
+    scales:{x:{grid:{display:false},ticks:{color:t3,font:{size:11}},border:{color:grid}},
+            y:{grid:{color:grid},ticks:{color:t3,font:{size:11},callback:v=>fmtMet(v)},border:{display:false},beginAtZero:true}}},extra);
+}
+function mk(id,cfg){if(CH[id])CH[id].destroy();const el=document.getElementById(id);if(!el)return;CH[id]=new Chart(el,cfg);}
+function legendYears(el,years){el.innerHTML=years.map(y=>`<span><i style="background:${yrColor(y)}"></i>${y}</span>`).join('');}
 
-  if(!anio){
-    document.getElementById('warn-parcial').style.display='none';
-    document.getElementById('kpi-row').innerHTML='<div class="kpi"><p class="kpi-l">Sin año seleccionado</p></div>';
-    return;
-  }
-
-  const mc=getMesesIntra(anio);
-  const tiene=anio===DATA.ultimo_anio;
-  const per=mc.length===12?'año completo':(mc.length?`${MESES_S[MESES.indexOf(mc[0])]}–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`:'sin datos');
-  const pLabel=paisFiltroLabel();
-  document.getElementById('rng-label').textContent=`${anio} · ${per}${pLabel?' · '+pLabel:''}`;
-
-  if(tiene&&selMeses.size>mc.length){
-    document.getElementById('warn-parcial').style.display='block';
-    document.getElementById('warn-txt').innerHTML=`<strong>Datos parciales:</strong> ${anio} solo tiene datos hasta ${DATA.ultimo_mes.toLowerCase()}. Se muestran solo esos meses.`;
-  }else{
-    document.getElementById('warn-parcial').style.display='none';
-  }
-
-  const cliCaveatEl=document.getElementById('cli-caveat');
-  if(cliCaveatEl)cliCaveatEl.textContent=pLabel?`Nota: los totales por cliente son globales — aún no están cruzados por país.`:'';
-
-  document.getElementById('sec-anio-t').textContent=`Venta por mes — ${anio}${pLabel?' — '+pLabel:''}`;
-  document.getElementById('sec-varA-t').textContent='Variación % mes a mes'+(pLabel?' — '+pLabel:'');
-  document.getElementById('sec-var-t').textContent=`Variación % mes a mes — ${anio}${pLabel?' — '+pLabel:''}`;
-
-  const serie=getSerieMensual(anio);
-  const valores=mc.map(m=>({m,mi:MESES.indexOf(m),v:serie[MESES.indexOf(m)]||0}));
-  const total=valores.reduce((s,x)=>s+x.v,0);
-  const promedio=valores.length?total/valores.length:0;
-  const mejor=valores.length?valores.reduce((a,b)=>b.v>a.v?b:a):null;
-  const peor=valores.length?valores.reduce((a,b)=>b.v<a.v?b:a):null;
-  const trendPct=valores.length>=2?pct(valores[0].v,valores[valores.length-1].v):null;
-
-  document.getElementById('kpi-row').innerHTML=`
-    <div class="kpi"><p class="kpi-l">Total ${anio} · ${per}</p><p class="kpi-v">${$k(total)}</p><p class="kpi-s ${trendPct===null?'':trendPct>=0?'pos':'neg'}">${trendPct!==null?sgn(trendPct)+trendPct.toFixed(1)+'% ('+MESES_S[valores[0].mi]+'→'+MESES_S[valores[valores.length-1].mi]+')':'—'}</p></div>
-    <div class="kpi"><p class="kpi-l">Mejor mes</p><p class="kpi-v">${mejor?MESES_S[mejor.mi]:'—'}</p><p class="kpi-s">${mejor?$k(mejor.v):''}</p></div>
-    <div class="kpi"><p class="kpi-l">Peor mes</p><p class="kpi-v">${peor?MESES_S[peor.mi]:'—'}</p><p class="kpi-s">${peor?$k(peor.v):''}</p></div>
-    <div class="kpi"><p class="kpi-l">Promedio mensual</p><p class="kpi-v">${$k(promedio)}</p><p class="kpi-s">${valores.length} meses</p></div>
-  `;
-
-  const barColors=valores.map(x=>mejor&&x.mi===mejor.mi?'#0ca30c':(peor&&x.mi===peor.mi&&(!mejor||peor.mi!==mejor.mi)?'#d03b3b':'#1f3a5f'));
-  upd('c-anio',{type:'bar',data:{labels:valores.map(x=>MESES_S[x.mi]),datasets:[{data:valores.map(x=>x.v),backgroundColor:barColors,borderRadius:4}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>$k(c.parsed.y)}}},scales:{x:{ticks:{color:'#52514e'},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
-
-  const varMes=valores.map((x,i)=>i===0?null:parseFloat((pct(valores[i-1].v,x.v)||0).toFixed(1)));
-  upd('c-varA',{type:'bar',data:{labels:valores.map(x=>MESES_S[x.mi]),datasets:[{data:varMes,backgroundColor:varMes.map(v=>v===null?'transparent':v>=0?'#0ca30c':'#d03b3b'),borderRadius:4}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!==null?sgn(c.parsed.y)+c.parsed.y+'%':null}}},scales:{x:{ticks:{color:'#52514e'},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>sgn(v)+v+'%'},grid:{color:'#f0efec'}}}}});
-
-  document.getElementById('leg-mens').innerHTML=`<span><span class="ldot" style="background:#1f3a5f;"></span>${anio}${pLabel?' · '+pLabel:''}</span>`;
-  upd('c-mens',{type:'line',data:{labels:MESES_S,datasets:[{label:String(anio),data:MESES.map((m,mi)=>mc.includes(m)?(serie[mi]??0):null),borderColor:'#1f3a5f',pointBackgroundColor:'#1f3a5f',borderWidth:2,pointRadius:3,tension:0.3,fill:false}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!=null?$k(c.parsed.y):null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
-
-  const pPaises=PAISES.filter(p=>selPaises.has(p));
-  const pVals=pPaises.map(p=>getVentaPais(p,anio,mc));
-  const paisesTodos=pPaises.length===PAISES.length;
-  document.getElementById('c-pais-wrap').style.display=paisesTodos?'':'none';
-  document.getElementById('pais-mens-bars').style.display=paisesTodos?'none':'';
-  document.getElementById('sec-pais-t').textContent=paisesTodos?'Venta por país':`Venta por país — por mes (${anio})`;
-  if(paisesTodos){
-    upd('c-pais',{type:'bar',data:{labels:pPaises,datasets:[{label:String(anio),data:pVals,backgroundColor:'#1f3a5f',borderRadius:3}]},
-      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>$k(c.parsed.x)}}},scales:{x:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}},y:{ticks:{color:'#52514e'},grid:{display:false}}}}});
-  }else{
-    renderPaisMensualBarras(anio,mc,pPaises);
-  }
-
-  upd('c-pie',{type:'doughnut',data:{labels:pPaises,datasets:[{data:pVals,backgroundColor:PIE_COLS.slice(0,pPaises.length),borderWidth:2,borderColor:'#fff'}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},color:'#52514e',boxWidth:12}},tooltip:{callbacks:{label:c=>{const t=pVals.reduce((a,b)=>a+b,0);return`${c.label}: ${$k(c.parsed)} (${t?(c.parsed/t*100).toFixed(1):0}%)`;}}}}}});
-
-  document.getElementById('sec-pais-mens-t').textContent=`Tendencia mensual por país — ${anio}`;
-  renderPaisTendencia(anio,mc,pPaises);
-  insightPaisTendencia(anio,mc,pPaises);
-
-  const cVals=CLIENTES.map(c=>getVentaCli(c,anio,mc));
-  upd('c-cli',{type:'bar',data:{labels:CLIENTES,datasets:[{label:String(anio),data:cVals,backgroundColor:'#1f3a5f',borderRadius:3}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>$k(c.parsed.x)}}},scales:{x:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}},y:{ticks:{color:'#52514e'},grid:{display:false}}}}});
-
-  document.getElementById('leg-ytd').innerHTML=`<span><span class="ldot" style="background:#1f3a5f;"></span>${anio}${pLabel?' · '+pLabel:''}</span>`;
-  let acc=0;
-  const ytdData=MESES_S.map((_,mi)=>{if(!mc.includes(MESES[mi]))return null;acc+=(serie[mi]||0);return Math.round(acc);});
-  upd('c-ytd',{type:'line',data:{labels:MESES_S,datasets:[{label:String(anio),data:ytdData,borderColor:'#1f3a5f',pointBackgroundColor:'#1f3a5f',borderWidth:2,pointRadius:3,tension:0.3,fill:false}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!=null?$k(c.parsed.y):null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
-
-  upd('c-var',{type:'bar',data:{labels:valores.map(x=>MESES_S[x.mi]),datasets:[{data:varMes,backgroundColor:varMes.map(v=>v===null?'transparent':v>=0?'#0ca30c':'#d03b3b'),borderRadius:3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!==null?sgn(c.parsed.y)+c.parsed.y+'%':null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>sgn(v)+v+'%'},grid:{color:'#f0efec'},afterDataLimits:s=>{s.min=Math.min(s.min,-10);s.max=Math.max(s.max,10);}}}}});
-
-  genInsightIntra(anio,mc,valores,total,promedio,mejor,peor,trendPct,per,pPaises,pVals,cVals);
+/* ---------- Resumen ---------- */
+function renderResumen(){
+  const months=[];for(let m=F.m1;m<=F.m2;m++)months.push(m);
+  const years=F.comp!=null?[F.comp,F.anio].sort((a,b)=>a-b):[F.anio];
+  const byM=y=>{const g=groupSum(rowsY(y,{}),'m');return months.map(m=>g.get(m)||0);};
+  document.getElementById('t-mens').textContent=`Venta mensual en ${metLbl()}`;
+  document.getElementById('s-mens').textContent=F.comp!=null?`${F.anio} frente a ${F.comp}, ${perLbl()}`:`${F.anio}, ${perLbl()}`;
+  legendYears(document.getElementById('lg-mens'),years);
+  mk('c-mens',{type:'bar',data:{labels:months.map(m=>MS[m]),datasets:years.map(y=>({label:String(y),data:byM(y),backgroundColor:yrColor(y),borderRadius:4,borderSkipped:'start',maxBarThickness:28,categoryPercentage:.72,barPercentage:.9}))},
+    options:baseOpts({plugins:{...baseOpts().plugins,tooltip:{...baseOpts().plugins.tooltip,callbacks:{label:c=>' '+c.dataset.label+': '+fmtMetFull(c.parsed.y),
+      afterBody:items=>{if(items.length<2)return'';const a=items.find(i=>i.dataset.label==String(F.anio)),b=items.find(i=>i.dataset.label==String(F.comp));return a&&b&&b.parsed.y?'Variación: '+pct(a.parsed.y/b.parsed.y-1):'';}}}}})});
+  // anual mismo período
+  const tot=ANIOS.map(y=>sum(rowsY(y)));
+  document.getElementById('s-anual').textContent=`${perLbl()} de cada año, en ${metLbl()}`;
+  mk('c-anual',{type:'bar',data:{labels:ANIOS.map(String),datasets:[{label:'Venta',data:tot,backgroundColor:ANIOS.map(yrColor),borderRadius:4,borderSkipped:'start',maxBarThickness:46}]},
+    options:baseOpts({interaction:{mode:'nearest',intersect:true},plugins:{...baseOpts().plugins,tooltip:{...baseOpts().plugins.tooltip,callbacks:{label:c=>{const i=c.dataIndex;const prev=i?tot[i-1]:null;return ' '+fmtMetFull(c.parsed.y)+(prev?'  ('+pct(c.parsed.y/prev-1)+' vs '+ANIOS[i-1]+')':'');}}}},
+      onClick:(e,el)=>{if(el.length){F.anio=ANIOS[el[0].index];F.comp=ANIOS.includes(F.anio-1)?F.anio-1:null;buildFilters();refresh();}}})});
+  // acumulado
+  legendYears(document.getElementById('lg-acum'),years);
+  document.getElementById('s-acum').textContent=`${metLbl()}, ${perLbl()}`;
+  const cum=arr=>{let s=0;return arr.map(v=>s+=v);};
+  mk('c-acum',{type:'line',data:{labels:months.map(m=>MS[m]),datasets:years.map(y=>({label:String(y),data:cum(byM(y)),borderColor:yrColor(y),backgroundColor:yrColor(y),borderWidth:y===F.anio?2.5:2,pointRadius:3,pointHoverRadius:5,tension:.25}))},
+    options:baseOpts()});
+  renderMovers();
+  aiLocal('resumen');
+}
+function renderMovers(){
+  const el=document.getElementById('movers');
+  if(F.comp==null){el.innerHTML='<div class="empty">Elige un año en "Comparar con" para ver qué clientes explican la variación.</div>';return;}
+  const a=groupSum(rowsY(F.anio),'c'), b=groupSum(rowsY(F.comp),'c');
+  const cs=[...new Set([...a.keys(),...b.keys()])].filter(c=>!isHidden(c));
+  const rows=cs.map(c=>({c,a:a.get(c)||0,b:b.get(c)||0,d:(a.get(c)||0)-(b.get(c)||0)})).filter(r=>r.a||r.b).sort((x,y)=>Math.abs(y.d)-Math.abs(x.d));
+  const hid=[...b.keys()].filter(isHidden).reduce((s,c)=>s+(b.get(c)||0)-(a.get(c)||0),0);
+  const mx=Math.max(...rows.map(r=>Math.abs(r.d)),1);
+  el.innerHTML=`<div class="tw"><table><thead><tr><th>Cliente</th><th class="n">${F.comp}</th><th class="n">${F.anio}</th><th>Cambio</th></tr></thead><tbody>${rows.map(r=>`
+    <tr class="click" data-c="${esc(r.c)}"><td>${esc(r.c)}${r.b===0?'<span class="tag new">NUEVO</span>':''}</td><td class="n">${fmtMet(r.b)}</td><td class="n">${fmtMet(r.a)}</td>
+    <td><div class="bar-cell"><span class="delta ${r.d>=0?'pos':'neg'}" style="min-width:86px;display:inline-block;text-align:right">${r.d>=0?'+':''}${fmtMet(r.d)}</span><span class="b" style="width:${Math.round(Math.abs(r.d)/mx*90)}px;background:${r.d>=0?'var(--pos)':'var(--neg)'}"></span></div></td></tr>`).join('')}
+    ${hid?`<tr><td colspan="4" class="k-s2" style="white-space:normal">Clientes inactivos (VIDUC, F. Jenny): ${hid>0?'−':'+'}${fmtMet(Math.abs(hid))} frente a ${F.comp}.</td></tr>`:''}</tbody></table></div>`;
+  el.querySelectorAll('tr[data-c]').forEach(tr=>tr.onclick=()=>toggleFilter('cli',tr.dataset.c));
 }
 
-function genInsightIntra(anio,mc,valores,total,promedio,mejor,peor,trendPct,per,pPaises,pVals,cVals){
-  ins('ins-anio',`${anio} (${per}): venta total ${$k(total)}, promedio mensual ${$k(promedio)}. Mejor mes: ${mejor?MESES_S[mejor.mi]:'—'}${mejor?' ('+$k(mejor.v)+')':''}, peor: ${peor?MESES_S[peor.mi]:'—'}${peor?' ('+$k(peor.v)+')':''}.`);
-
-  const subidas=valores.filter((x,i)=>i>0&&x.v>valores[i-1].v).length;
-  ins('ins-varA',`${subidas} de ${Math.max(valores.length-1,0)} meses crecieron respecto al mes anterior.${trendPct!==null?` Tendencia ${trendPct>=0?'positiva':'negativa'}: ${sgn(trendPct)}${trendPct.toFixed(1)}% de ${MESES_S[valores[0].mi]} a ${MESES_S[valores[valores.length-1].mi]}.`:''}`);
-
-  ins('ins-mens',`Evolución mensual de ${anio} en ${per}. El mes más fuerte fue ${mejor?MESES_S[mejor.mi]:'—'}, el más débil ${peor?MESES_S[peor.mi]:'—'}.`);
-
-  if(pPaises.length===PAISES.length){
-    if(pPaises.length){
-      const totalPais=pVals.reduce((a,b)=>a+b,0);
-      const top=pPaises.map((p,i)=>({p,v:pVals[i]})).sort((a,b)=>b.v-a.v)[0];
-      ins('ins-pais',`Mercado principal en ${anio}: ${top.p} con ${$k(top.v)}${totalPais?` (${(top.v/totalPais*100).toFixed(0)}% del total).`:'.'}`);
-    }
-  }else{
-    insightPaisMensualBarras(anio,mc,pPaises);
-  }
-
-  const cTop=CLIENTES.map((c,i)=>({c,v:cVals[i]})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v)[0];
-  const totalCli=cVals.reduce((a,b)=>a+b,0);
-  ins('ins-cli',cTop?`Cliente principal en ${anio}: ${cTop.c} con ${$k(cTop.v)}${totalCli?` (${(cTop.v/totalCli*100).toFixed(0)}% del total).`:'.'}`:'Sin datos de clientes para este período.');
-
-  ins('ins-ytd',`Acumulado ${per} de ${anio}: ${$k(total)}. Promedio mensual: ${$k(promedio)}.`);
-
-  ins('ins-var',`Variación mes a mes dentro de ${anio}. Verde = crecimiento vs. el mes anterior, rojo = caída. Selecciona un segundo año en los filtros para ver comparación interanual.`);
+/* ---------- Países y clientes ---------- */
+function hbar(id,wrapId,labels,keys,dsA,dsB,onClickKey){
+  document.getElementById(wrapId).style.height=Math.max(220,labels.length*(dsB?40:28)+40)+'px';
+  const ds=[];
+  if(dsB)ds.push({label:String(F.comp),data:dsB,backgroundColor:yrColor(F.comp),borderRadius:4,borderSkipped:'start',barPercentage:.9,categoryPercentage:.75});
+  ds.push({label:String(F.anio),data:dsA,backgroundColor:yrColor(F.anio),borderRadius:4,borderSkipped:'start',barPercentage:.9,categoryPercentage:.75});
+  const o=baseOpts({indexAxis:'y',interaction:{mode:'index',intersect:false,axis:'y'},
+    onClick:(e,el)=>{if(el.length)onClickKey(keys[el[0].index]);},
+    onHover:(e,el)=>{e.native.target.style.cursor=el.length?'pointer':'default';}});
+  o.scales={x:{grid:{color:css('--grid')},ticks:{color:css('--text-3'),font:{size:11},callback:v=>fmtMet(v),maxRotation:0,autoSkip:true,maxTicksLimit:6},border:{display:false},beginAtZero:true},
+            y:{grid:{display:false},ticks:{color:css('--text-2'),font:{size:12}},border:{color:css('--grid')}}};
+  o.plugins.tooltip.callbacks={label:c=>' '+c.dataset.label+': '+fmtMetFull(c.parsed.x),afterBody:items=>{const a=items.find(i=>i.dataset.label==String(F.anio)),b=items.find(i=>i.dataset.label==String(F.comp));return a&&b?(b.parsed.x?'Variación: '+pct(a.parsed.x/b.parsed.x-1):'Sin venta en '+F.comp):'';}};
+  mk(id,{type:'bar',data:{labels,datasets:ds},options:o});
+}
+function renderPaises(){
+  document.querySelectorAll('.lg-yr').forEach(el=>legendYears(el,F.comp!=null?[F.comp,F.anio]:[F.anio]));
+  const A=rowsY(F.anio), B=F.comp!=null?rowsY(F.comp):[];
+  const pa=groupSum(A,'p'), pb=groupSum(B,'p');
+  const ps=[...new Set([...pa.keys(),...pb.keys()])].sort((x,y)=>(pa.get(y)||0)-(pa.get(x)||0)||(pb.get(y)||0)-(pb.get(x)||0));
+  document.getElementById('s-pais').textContent=`${metLbl()}, ${perLbl()}`;
+  hbar('c-pais','cw-pais',ps.map(tc),ps,ps.map(p=>pa.get(p)||0),F.comp!=null?ps.map(p=>pb.get(p)||0):null,p=>toggleFilter('pais',p));
+  const Av=A.filter(r=>!isHidden(r.c)), Bv=B.filter(r=>!isHidden(r.c));
+  const ca=groupSum(Av,'c'), cb=groupSum(Bv,'c');
+  const cs=[...new Set([...ca.keys(),...cb.keys()])].sort((x,y)=>(ca.get(y)||0)-(ca.get(x)||0)||(cb.get(y)||0)-(cb.get(x)||0));
+  document.getElementById('s-cli').textContent=`${metLbl()}, ${perLbl()} · solo clientes activos`;
+  hbar('c-cli','cw-cli',cs,cs,cs.map(c=>ca.get(c)||0),F.comp!=null?cs.map(c=>cb.get(c)||0):null,c=>toggleFilter('cli',c));
+  // tabla
+  const tA=sum(Av), tB=sum(Bv);
+  const rows=cs.map(c=>({c,p:tc(INFO[c]?.pais||paisDe(c)),as:INFO[c]?.asesora||'',a:ca.get(c)||0,b:cb.get(c)||0}));
+  document.getElementById('tb-cli').innerHTML=`<table><thead><tr><th>Cliente</th><th>País</th><th>Asesora</th><th class="n">${F.anio}</th>${F.comp!=null?`<th class="n">${F.comp}</th><th class="n">Variación</th>`:''}<th class="n">Participación</th></tr></thead>
+   <tbody>${rows.map(r=>`<tr class="click" data-c="${esc(r.c)}"><td>${esc(r.c)}${F.comp!=null&&!r.b&&r.a?'<span class="tag new">NUEVO</span>':''}</td><td>${r.p}</td><td>${esc(r.as)}</td><td class="n">${fmtMetFull(r.a)}</td>${F.comp!=null?`<td class="n">${fmtMetFull(r.b)}</td><td class="n">${r.b?`<span class="delta ${r.a>=r.b?'pos':'neg'}">${pct(r.a/r.b-1)}</span>`:'—'}</td>`:''}<td class="n">${tA?pctPlain(r.a/tA):'—'}</td></tr>`).join('')}</tbody>
+   <tfoot><tr><td>Total clientes activos</td><td></td><td></td><td class="n">${fmtMetFull(tA)}</td>${F.comp!=null?`<td class="n">${fmtMetFull(tB)}</td><td class="n">${tB?pct(tA/tB-1):'—'}</td>`:''}<td class="n">100%</td></tr></tfoot></table>`;
+  document.querySelectorAll('#tb-cli tr[data-c]').forEach(tr=>tr.onclick=()=>toggleFilter('cli',tr.dataset.c));
+  aiLocal('paises');
 }
 
-/* ---------- MODO INTER-AÑO (dos o más años seleccionados) ---------- */
-
-function refreshInter(anios){
-  const pLabel=paisFiltroLabel();
-  document.getElementById('sec-anio-t').textContent='Venta total por año'+(pLabel?' — '+pLabel:'');
-  document.getElementById('sec-varA-t').textContent='Variación % año a año'+(pLabel?' — '+pLabel:'');
-  document.getElementById('sec-var-t').textContent='Variación % mensual — año actual vs anterior'+(pLabel?' — '+pLabel:'');
-  document.getElementById('leg-pais').innerHTML=LEG_INTER;
-  document.getElementById('leg-cli').innerHTML=LEG_INTER;
-  const cliCaveatEl=document.getElementById('cli-caveat');
-  if(cliCaveatEl)cliCaveatEl.textContent=pLabel?`Nota: los totales por cliente son globales — aún no están cruzados por país.`:'';
-
-  const anioB=anios[anios.length-1],anioA=anios.length>=2?anios[anios.length-2]:null;
-  const tiene2026=anios.includes(DATA.ultimo_anio);
-  const mc=getMesesComp();
-  const vB=anioB?getVentaAnio(anioB,mc):0,vA=anioA?getVentaAnio(anioA,mc):0;
-  const varPct=pct(vA,vB);
-  const per=mc.length===12?'año completo':`ene–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`;
-  document.getElementById('warn-parcial').style.display=tiene2026&&selMeses.size>mc.length?'block':'none';
-  document.getElementById('warn-txt').innerHTML=`<strong>Comparación parcial:</strong> ${DATA.ultimo_anio} solo tiene datos hasta ${DATA.ultimo_mes.toLowerCase()}. Se compara solo ese período en ambos años.`;
-  document.getElementById('rng-label').textContent=per+(pLabel?' · '+pLabel:'');
-
-  const ytd2026=getVentaAnio(DATA.ultimo_anio,mc);
-  const ytd2025=getVentaAnio(DATA.ultimo_anio-1,mc);
-  const ytdVar=pct(ytd2025,ytd2026);
-
-  document.getElementById('kpi-row').innerHTML=`
-    <div class="kpi"><p class="kpi-l">${anioB||'—'} · ${per}</p><p class="kpi-v">${$k(vB)}</p><p class="kpi-s ${varPct===null?'':varPct>=0?'pos':'neg'}">${varPct!==null?sgn(varPct)+varPct.toFixed(1)+'% vs '+anioA:'sin comparación'}</p></div>
-    <div class="kpi"><p class="kpi-l">Año anterior (${anioA||'—'})</p><p class="kpi-v">${$k(vA)}</p><p class="kpi-s">${per}</p></div>
-    <div class="kpi"><p class="kpi-l">YTD ${DATA.ultimo_anio} (${per})</p><p class="kpi-v">${$k(ytd2026)}</p><p class="kpi-s ${ytdVar>=0?'pos':'neg'}">${sgn(ytdVar)}${ytdVar?.toFixed(1)}% vs ${DATA.ultimo_anio-1}</p></div>
-    <div class="kpi"><p class="kpi-l">LTM</p><p class="kpi-v">${$k(getLTM())}</p><p class="kpi-s">Sep ${DATA.ultimo_anio-1}–${DATA.ultimo_mes.toLowerCase()} ${DATA.ultimo_anio}</p></div>
-  `;
-
-  // colores asignados desde el año más reciente hacia atrás: actual = azul oscuro, anterior = azul
-  // claro (igual que en las barras por país/cliente), años más antiguos en tonos bien distintos
-  const mensClrs=anios.map((_,i)=>YEAR_COLS[anios.length-1-i]||'#9a9a9a');
-  const barClrs=anios.map((_,i)=>mensClrs[i]||'#7f9cc4');
-
-  upd('c-anio',{type:'bar',data:{labels:anios.map(String),datasets:[{data:anios.map(a=>getVentaAnio(a,mc)),backgroundColor:barClrs,borderRadius:4}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>$k(c.parsed.y)}}},scales:{x:{ticks:{color:'#52514e'},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
-
-  const varAnio=anios.map((a,i)=>{if(!i)return null;const p=pct(getVentaAnio(anios[i-1],mc),getVentaAnio(a,mc));return p!==null?parseFloat(p.toFixed(1)):null;});
-  upd('c-varA',{type:'bar',data:{labels:anios.map(String),datasets:[{data:varAnio,backgroundColor:varAnio.map(v=>v===null?'transparent':v>=0?'#0ca30c':'#d03b3b'),borderRadius:4}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!==null?sgn(c.parsed.y)+c.parsed.y+'%':null}}},scales:{x:{ticks:{color:'#52514e'},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>sgn(v)+v+'%'},grid:{color:'#f0efec'}}}}});
-
-  const mensDS=anios.map((a,i)=>({label:String(a),data:MESES.map((m,mi)=>selMeses.has(m)?(getSerieMensual(a)[mi]??0):null),borderColor:mensClrs[i]||'#7f9cc4',pointBackgroundColor:mensClrs[i]||'#7f9cc4',borderWidth:i===anios.length-1?3:2,pointRadius:3,tension:0.3,fill:false}));
-  document.getElementById('leg-mens').innerHTML=anios.map((a,i)=>`<span><span class="ldot" style="background:${mensClrs[i]}"></span>${a}</span>`).join('')+(pLabel?` <span style="color:#aaa;">· ${pLabel}</span>`:'');
-  upd('c-mens',{type:'line',data:{labels:MESES_S,datasets:mensDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!=null?`${c.dataset.label}: ${$k(c.parsed.y)}`:null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
-
-  const pPaises=PAISES.filter(p=>selPaises.has(p));
-  const paisesTodos=pPaises.length===PAISES.length;
-  document.getElementById('c-pais-wrap').style.display=paisesTodos?'':'none';
-  document.getElementById('pais-mens-bars').style.display=paisesTodos?'none':'';
-  document.getElementById('sec-pais-t').textContent=paisesTodos?'Venta por país':`Venta por país — por mes (${anioB})`;
-  if(paisesTodos){
-    const pDS=[];
-    if(anioA)pDS.push({label:String(anioA),data:pPaises.map(p=>getVentaPais(p,anioA,mc)),backgroundColor:'#7f9cc4',borderRadius:3});
-    if(anioB)pDS.push({label:String(anioB),data:pPaises.map(p=>getVentaPais(p,anioB,mc)),backgroundColor:'#1f3a5f',borderRadius:3});
-    upd('c-pais',{type:'bar',data:{labels:pPaises,datasets:pDS},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${$k(c.parsed.x)}`}}},scales:{x:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}},y:{ticks:{color:'#52514e'},grid:{display:false}}}}});
-  }else if(anioB){
-    renderPaisMensualBarras(anioB,mc,pPaises);
-  }
-
-  if(anioB){
-    const pd=pPaises.map(p=>getVentaPais(p,anioB,mc));
-    upd('c-pie',{type:'doughnut',data:{labels:pPaises,datasets:[{data:pd,backgroundColor:PIE_COLS.slice(0,pPaises.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},color:'#52514e',boxWidth:12}},tooltip:{callbacks:{label:c=>{const t=pd.reduce((a,b)=>a+b,0);return`${c.label}: ${$k(c.parsed)} (${(c.parsed/t*100).toFixed(1)}%)`;}}}}}});
-  }
-
-  document.getElementById('sec-pais-mens-t').textContent=`Tendencia mensual por país — ${anioB||''}${anioA?` (para comparar con ${anioA}, selecciona un solo año)`:''}`;
-  if(anioB){renderPaisTendencia(anioB,mc,pPaises);insightPaisTendencia(anioB,mc,pPaises);}
-
-  const cDS=[];
-  if(anioA&&CLIENTES.some(c=>getVentaCli(c,anioA,mc)>0))cDS.push({label:String(anioA),data:CLIENTES.map(c=>getVentaCli(c,anioA,mc)),backgroundColor:'#7f9cc4',borderRadius:3});
-  if(anioB&&CLIENTES.some(c=>getVentaCli(c,anioB,mc)>0))cDS.push({label:String(anioB),data:CLIENTES.map(c=>getVentaCli(c,anioB,mc)),backgroundColor:'#1f3a5f',borderRadius:3});
-  upd('c-cli',{type:'bar',data:{labels:CLIENTES,datasets:cDS},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${$k(c.parsed.x)}`}}},scales:{x:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}},y:{ticks:{color:'#52514e'},grid:{display:false}}}}});
-
-  const ytdDS=anios.map((a,i)=>{let acc=0;const serie=getSerieMensual(a);return{label:String(a),data:MESES_S.map((_,mi)=>{if(!selMeses.has(MESES[mi]))return null;acc+=(serie[mi]||0);return Math.round(acc)||null;}),borderColor:mensClrs[i]||'#7f9cc4',pointBackgroundColor:mensClrs[i]||'#7f9cc4',borderWidth:i===anios.length-1?3:2,pointRadius:3,tension:0.3,fill:false};});
-  document.getElementById('leg-ytd').innerHTML=anios.map((a,i)=>`<span><span class="ldot" style="background:${mensClrs[i]}"></span>${a}</span>`).join('')+(pLabel?` <span style="color:#aaa;">· ${pLabel}</span>`:'');
-  upd('c-ytd',{type:'line',data:{labels:MESES_S,datasets:ytdDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y?`${c.dataset.label}: ${$k(c.parsed.y)}`:null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>$k(v)},grid:{color:'#f0efec'}}}}});
-
-  const serieA=anioA?getSerieMensual(anioA):null,serieB=anioB?getSerieMensual(anioB):null;
-  const vm=anioA&&anioB?MESES_S.map((_,mi)=>{const a=serieA[mi]||0,b=serieB[mi]||0;if(!a||!selMeses.has(MESES[mi]))return null;return parseFloat((pct(a,b)||0).toFixed(1));}):[];
-  upd('c-var',{type:'bar',data:{labels:MESES_S,datasets:[{data:vm,backgroundColor:vm.map(v=>v===null?'transparent':v>=0?'#0ca30c':'#d03b3b'),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y!==null?sgn(c.parsed.y)+c.parsed.y+'%':null}}},scales:{x:{ticks:{color:'#52514e',autoSkip:false,maxRotation:0},grid:{display:false}},y:{ticks:{color:'#52514e',callback:v=>sgn(v)+v+'%'},grid:{color:'#f0efec'},afterDataLimits:s=>{s.min=Math.min(s.min,-10);s.max=Math.max(s.max,10);}}}}});
-
-  genInsightInter(anios,anioA,anioB,mc);
+/* ---------- Líneas ---------- */
+function renderLineas(){
+  document.querySelectorAll('.lg-yr').forEach(el=>legendYears(el,F.comp!=null?[F.comp,F.anio]:[F.anio]));
+  const A=rowsY(F.anio,{ignoreLin:true}), B=F.comp!=null?rowsY(F.comp,{ignoreLin:true}):[];
+  const cov=coberturaLinea(A), covB=B.length?coberturaLinea(B):null;
+  document.getElementById('lin-warn').innerHTML=`<div class="warn"><b>Ojo con las conclusiones por línea:</b> solo el ${pctPlain(cov)} de la venta de ${F.anio} (${perLbl()}) viene separada por línea${covB!=null?`, frente al ${pctPlain(covB)} en ${F.comp}`:''}. El resto se reporta como total sin desglose (por ejemplo, El Pacífico, Mega Líneas y Espinoza). Una línea que "cae" puede ser solo un cambio en cómo se reporta.</div>`;
+  const la=groupSum(A.filter(r=>r.l!==SIN),'l'), lb=groupSum(B.filter(r=>r.l!==SIN),'l');
+  const ls=[...new Set([...la.keys(),...lb.keys()])].filter(l=>(la.get(l)||0)+(lb.get(l)||0)>0).sort((x,y)=>(la.get(y)||0)-(la.get(x)||0));
+  document.getElementById('s-lin').textContent=`${metLbl()}, ${perLbl()} · solo venta con desglose`;
+  hbar('c-lin','cw-lin',ls.map(tc),ls,ls.map(l=>la.get(l)||0),F.comp!=null?ls.map(l=>lb.get(l)||0):null,l=>toggleFilter('lin',l));
+  const rowsP=ls.map(l=>{const ra=A.filter(r=>r.l===l), rb=B.filter(r=>r.l===l);return {l,pa:precio(ra),pb:rb.length?precio(rb):null,n:sum(ra,r=>r.n)};});
+  document.getElementById('tb-precio').innerHTML=`<table><thead><tr><th>Línea</th><th class="n">Unidades ${F.anio}</th><th class="n">$/u ${F.anio}</th>${F.comp!=null?`<th class="n">$/u ${F.comp}</th>`:''}</tr></thead><tbody>
+   ${rowsP.map(r=>`<tr><td>${tc(r.l)}</td><td class="n">${und(r.n)}</td><td class="n">${r.pa!=null?'$'+nf2.format(r.pa):'—'}</td>${F.comp!=null?`<td class="n">${r.pb!=null?'$'+nf2.format(r.pb):'—'}</td>`:''}</tr>`).join('')}</tbody></table>`;
+  aiLocal('lineas');
 }
 
-function genInsightInter(anios,anioA,anioB,mc){
-  const vB=anioB?getVentaAnio(anioB,mc):0,vA=anioA?getVentaAnio(anioA,mc):0;
-  const varPct=pct(vA,vB);
-  const per=mc.length===12?'año completo':`ene–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`;
-  if(anios.length>=2){const mejor=anios.reduce((a,b)=>getVentaAnio(a,mc)>getVentaAnio(b,mc)?a:b);ins('ins-anio',`Mejor año en ${per}: ${mejor} con ${$k(getVentaAnio(mejor,mc))}. ${anioB&&anioA?`${anioB} muestra ${varPct>=0?'crecimiento':'descenso'} de ${sgn(varPct)}${varPct?.toFixed(1)}% vs ${anioA}.`:''}`);}
-  const vars=anios.map((a,i)=>{if(!i)return null;const p=pct(getVentaAnio(anios[i-1],mc),getVentaAnio(a,mc));return{a,p};}).filter(Boolean);
-  if(vars.length){const mj=vars.reduce((a,b)=>a.p>b.p?a:b),pr=vars.reduce((a,b)=>a.p<b.p?a:b);ins('ins-varA',`Mayor crecimiento: ${mj.a} (${sgn(mj.p)}${mj.p.toFixed(1)}%). ${pr.p<0?`Caída en ${pr.a} (${pr.p.toFixed(1)}%).`:'Todos los años muestran crecimiento.'}`);}
-  if(anioA&&anioB){
-    const sA=getSerieMensual(anioA),sB=getSerieMensual(anioB);
-    const mv=mc.map(m=>{const mi=MESES.indexOf(m),a=sA[mi]||0,b=sB[mi]||0;return a?{m:MESES_S[mi],p:pct(a,b)}:null;}).filter(Boolean);
-    const vd=mv.filter(x=>x.p>=0),ro=mv.filter(x=>x.p<0);
-    const mj=mv.reduce((a,b)=>a.p>b.p?a:b,mv[0]),pr=mv.reduce((a,b)=>a.p<b.p?a:b,mv[0]);
-    ins('ins-mens',`${vd.length} de ${mv.length} meses en ${anioB} superaron a ${anioA}. Mejor: ${mj?.m} (${sgn(mj?.p)}${mj?.p.toFixed(1)}%), peor: ${pr?.m} (${pr?.p.toFixed(1)}%).`);
-    const pvPaises=PAISES.filter(p=>selPaises.has(p));
-    if(pvPaises.length===PAISES.length){
-      const pv=pvPaises.map(p=>({p,vA:getVentaPais(p,anioA,mc),vB:getVentaPais(p,anioB,mc)})).map(x=>({...x,pct:pct(x.vA,x.vB)}));
-      const pt=pv.filter(x=>x.pct!==null).sort((a,b)=>b.pct-a.pct)[0],pb=pv.filter(x=>x.pct!==null).sort((a,b)=>a.pct-b.pct)[0],pm=pv.reduce((a,b)=>a.vB>b.vB?a:b,pv[0]);
-      ins('ins-pais',`Mayor crecimiento: ${pt?.p} (${sgn(pt?.pct)}${pt?.pct.toFixed(1)}%). Mayor caída: ${pb?.p} (${pb?.pct.toFixed(1)}%). Mercado principal: ${pm?.p} con ${$k(pm?.vB)}.`);
-    }else{
-      insightPaisMensualBarras(anioB,mc,pvPaises);
-    }
-    const cv=CLIENTES.map(c=>({c,vA:getVentaCli(c,anioA,mc),vB:getVentaCli(c,anioB,mc)})).map(x=>({...x,pct:x.vA>0?pct(x.vA,x.vB):null})).filter(x=>x.vB>0||x.vA>0);
-    const ct=cv.filter(x=>x.pct!==null).sort((a,b)=>b.pct-a.pct)[0],cb=cv.filter(x=>x.pct!==null).sort((a,b)=>a.pct-b.pct)[0],cm=cv.reduce((a,b)=>a.vB>b.vB?a:b,cv[0]);
-    const p1=cm?cm.vB/cv.reduce((s,x)=>s+x.vB,0)*100:0;
-    ins('ins-cli',`Mayor crecimiento: ${ct?.c} (${sgn(ct?.pct)}${ct?.pct.toFixed(1)}%). Mayor caída: ${cb?.c} (${cb?.pct.toFixed(1)}%). Cliente principal: ${cm?.c} (${p1.toFixed(0)}%${p1>40?' — concentración alta':''}).`);
-    ins('ins-ytd',`YTD ${anioB} en ${per}: ${$k(vB)}, ${varPct>=0?'por encima de':'por debajo de'} ${anioA} (${$k(vA)}) en ${sgn(varPct)}${varPct?.toFixed(1)}%.`);
-    ins('ins-var',`Barras verdes = meses donde ${anioB} superó a ${anioA} ese mes específico. Barras rojas (${ro.map(x=>x.m).join(', ')||'ninguna'}) = meses menores — no significa que el año esté mal. YTD ${per}: ${sgn(varPct)}${varPct?.toFixed(1)}%.`);
-  }
+/* ---------- Cumplimiento ---------- */
+function renderCumpl(){
+  const rep=D.reporte||{}; const um=MESES.findIndex(m=>m.toUpperCase()===D.ultimo_mes);
+  document.getElementById('t-cumpl').textContent=`Reporte mensual por cliente · ${D.ultimo_anio}`;
+  let cl=Object.keys(rep).filter(c=>!F.paises.size||F.paises.has(INFO[c]?.pais)).filter(c=>!F.clientes.size||F.clientes.has(c));
+  const byAs={}; cl.forEach(c=>{const a=INFO[c]?.asesora||'Sin asignar';(byAs[a]=byAs[a]||[]).push(c);});
+  const pend=pendientesUltimoMes().filter(c=>cl.includes(c));
+  const pendAs={}; pend.forEach(c=>{const a=INFO[c]?.asesora||'Sin asignar';(pendAs[a]=pendAs[a]||[]).push(c);});
+  document.getElementById('cumpl-sum').innerHTML=`<div class="kpi hero"><p class="k-l">${MESES[um]} ${D.ultimo_anio}</p><p class="k-v">${cl.length-pend.length} de ${cl.length}</p><p class="k-s2">clientes ya reportaron</p></div>`+
+    Object.keys(byAs).sort().map(a=>`<div class="kpi"><p class="k-l">${esc(a)}</p><p class="k-v">${pendAs[a]?pendAs[a].length+' pendiente'+(pendAs[a].length>1?'s':''):'Al día'}</p><p class="k-s2">${pendAs[a]?esc(pendAs[a].join(', ')):'Todos sus clientes reportaron '+MESES[um].toLowerCase()}</p></div>`).join('');
+  const cell=s=>'<td>'+(s==='ok'?'<span class="st ok" title="Reportó">✓</span>':s==='pendiente'?'<span class="st pend">Pendiente</span>':'<span class="st na" title="Aún no era cliente">—</span>')+'</td>';
+  document.getElementById('tb-cumpl').innerHTML=`<table class="comp"><thead><tr><th>Cliente</th><th>País</th>${MS.slice(0,um+1).map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>
+   ${Object.keys(byAs).sort().map(a=>`<tr class="grp"><td colspan="${um+3}">${esc(a)}</td></tr>`+byAs[a].sort((x,y)=>x.localeCompare(y,'es')).map(c=>`<tr><td>${esc(c)}</td><td>${tc(INFO[c]?.pais||'')}</td>${rep[c].map(cell).join('')}</tr>`).join('')).join('')}
+   </tbody></table>`;
 }
 
-/* ---------- IA (análisis vía api/analyze) ---------- */
-
-function buildPromptInter(tipo,anios){
-  const anioB=anios[anios.length-1],anioA=anios.length>=2?anios[anios.length-2]:null;
-  const mc=getMesesComp();
-  const per=mc.length===12?'año completo':`ene–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`;
-  const vB=getVentaAnio(anioB,mc),vA=anioA?getVentaAnio(anioA,mc):0;
-  const sA=anioA?getSerieMensual(anioA):[],sB=getSerieMensual(anioB);
-  const pLabel=paisFiltroLabel();
-  const ctx=pLabel?` (filtrado a ${pLabel})`:'';
-  const prompts={
-    anio:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por año en ${per}${ctx}: ${anios.map(a=>a+': '+$k(getVentaAnio(a,mc))).join(', ')}. Qué muestra la tendencia.`,
-    varA:`Analista de exportaciones. Máximo 2 oraciones en español. Variación % año a año${ctx}: ${anios.map((a,i)=>i===0?null:`${a}: ${(pct(getVentaAnio(anios[i-1],mc),getVentaAnio(a,mc))||0).toFixed(1)}%`).filter(Boolean).join(', ')}. Qué años destacan.`,
-    mens:`Analista de exportaciones. Máximo 2 oraciones en español. Tendencia mensual ${anioA} vs ${anioB} en ${per}${ctx}: ${mc.map(m=>{const mi=MESES.indexOf(m),a=sA[mi]||0,b=sB[mi]||0;return a?MESES_S[mi]+': '+(pct(a,b)||0).toFixed(1)+'%':null;}).filter(Boolean).join(', ')}. Qué meses fueron mejor y peor.`,
-    pais:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por país ${anioA} vs ${anioB}: ${PAISES.filter(p=>selPaises.has(p)).map(p=>`${p}: ${$k(getVentaPais(p,anioB,mc))} (${(pct(getVentaPais(p,anioA,mc),getVentaPais(p,anioB,mc))||0).toFixed(1)}%)`).join(', ')}. Destacar ganadores y perdedores.`,
-    cli:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por cliente ${anioA} vs ${anioB}: ${CLIENTES.map(c=>{const a=getVentaCli(c,anioA,mc),b=getVentaCli(c,anioB,mc);return b>0||a>0?`${c}: ${$k(b)} (${a>0?(pct(a,b)||0).toFixed(1)+'%':'nuevo'})`:null;}).filter(Boolean).join(', ')}. Destacar riesgos de concentración.`,
-    ytd:`Analista de exportaciones. Máximo 2 oraciones en español. YTD ${per}${ctx}: ${anioB}=${$k(vB)}, ${anioA}=${$k(vA)}, variación=${(pct(vA,vB)||0).toFixed(1)}%. Cómo viene el año.`,
-    var:`Analista de exportaciones. Máximo 2 oraciones en español. Variación % mensual ${anioB} vs ${anioA}${ctx}: ${mc.map(m=>{const mi=MESES.indexOf(m),a=sA[mi]||0,b=sB[mi]||0;return a?MESES_S[mi]+': '+(pct(a,b)||0).toFixed(1)+'%':null;}).filter(Boolean).join(', ')}. Explicar que barras rojas son comparaciones mensuales, no que el año esté mal — YTD sigue en ${(pct(vA,vB)||0).toFixed(1)}%.`,
-    'pais-mens':`Analista de exportaciones. Máximo 2 oraciones en español. Evolución mensual en ${anioB} por país: ${PAISES.filter(p=>selPaises.has(p)).map(p=>{const serie=DATA.mensual_paises?.[p]?.[anioB]||[];return`${p}: ${mc.map(m=>MESES_S[MESES.indexOf(m)]+' '+$k(serie[MESES.indexOf(m)]||0)).join(', ')}`;}).join(' | ')}. Compara cuáles países crecen y cuáles caen mes a mes.`
-  };
-  return prompts[tipo];
+/* ---------- Detalle ---------- */
+function detRows(){
+  const ys=F.comp!=null?[F.anio,F.comp]:[F.anio];
+  let rows=R.filter(r=>ys.includes(r.a)&&base(r));
+  if(det.q)rows=rows.filter(r=>(r.c+' '+r.p+' '+r.l).toLowerCase().includes(det.q));
+  const k=det.sort, d=det.dir;
+  const keyf={a:r=>r.a*100+r.m,m:r=>r.a*100+r.m,p:r=>r.p,c:r=>r.c,l:r=>r.l,usd:r=>r.u,n:r=>r.n,pu:r=>r.n>0&&r.u>0?r.u/r.n:-1}[k]||(r=>r.u);
+  return rows.slice().sort((x,y)=>{const a=keyf(x),b=keyf(y);return (a>b?1:a<b?-1:0)*d;});
+}
+function renderDetalle(){
+  const rows=detRows(), per=50, pages=Math.max(1,Math.ceil(rows.length/per));
+  if(det.page>=pages)det.page=pages-1;
+  const slice=rows.slice(det.page*per,det.page*per+per);
+  document.getElementById('s-det').textContent=`${rows.length} filas · ${F.comp!=null?F.anio+' y '+F.comp:F.anio}, ${perLbl()} · totales: ${usd(sum(rows,r=>r.u))} · ${und(sum(rows,r=>r.n))} unidades`;
+  const th=(k,t,n)=>`<th class="s${n?' n':''}" data-k="${k}">${t}${det.sort===k?(det.dir>0?' ▲':' ▼'):''}</th>`;
+  document.getElementById('tb-det').innerHTML=rows.length?`<table><thead><tr>${th('a','Año')}${th('m','Mes')}${th('p','País')}${th('c','Cliente')}${th('l','Línea')}${th('usd','USD',1)}${th('n','Unidades',1)}${th('pu','$/unidad',1)}</tr></thead><tbody>
+    ${slice.map(r=>`<tr><td>${r.a}</td><td>${MS[r.m]}</td><td>${tc(r.p)}</td><td>${esc(r.c)}${isHidden(r.c)?'<span class="tag off">INACTIVO</span>':''}</td><td>${r.l===SIN?'<span style="color:var(--text-3)">'+SIN+'</span>':tc(r.l)}</td><td class="n">${usd(r.u)}</td><td class="n">${r.n?und(r.n):'—'}</td><td class="n">${r.n>0&&r.u>0?'$'+nf2.format(r.u/r.n):'—'}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No hay datos con estos filtros.</div>';
+  document.querySelectorAll('#tb-det th.s').forEach(h=>h.onclick=()=>{const k=h.dataset.k;det.dir=det.sort===k?-det.dir:(['usd','n','pu'].includes(k)?-1:1);det.sort=k;renderDetalle();});
+  document.getElementById('det-pg').innerHTML=pages>1?`<button class="btn" type="button" ${det.page?'':'disabled'} id="pg-prev">‹ Anterior</button><span>Página ${det.page+1} de ${pages}</span><button class="btn" type="button" ${det.page<pages-1?'':'disabled'} id="pg-next">Siguiente ›</button>`:'';
+  const p=document.getElementById('pg-prev'),n=document.getElementById('pg-next');
+  if(p)p.onclick=()=>{det.page--;renderDetalle();}; if(n)n.onclick=()=>{det.page++;renderDetalle();};
+}
+function exportXlsx(){
+  const rows=detRows().map(r=>({'Año':r.a,'Mes':MESES[r.m],'País':tc(r.p),'Cliente':r.c,'Asesora':INFO[r.c]?.asesora||'','Línea':r.l===SIN?SIN:tc(r.l),'Sell out USD':r.u,'Unidades':r.n||null,'USD por unidad':r.n>0&&r.u>0?+(r.u/r.n).toFixed(2):null}));
+  if(typeof XLSX==='undefined'){alert('No se pudo cargar la librería de Excel. Revisa tu conexión e inténtalo de nuevo.');return;}
+  const ws=XLSX.utils.json_to_sheet(rows); ws['!cols']=[{wch:6},{wch:11},{wch:13},{wch:22},{wch:10},{wch:22},{wch:14},{wch:10},{wch:13}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Sell out');
+  const filtros=[['Filtros aplicados'],['Año',F.anio],['Comparación',F.comp??'—'],['Meses',perLbl()],['Países',[...F.paises].map(tc).join(', ')||'Todos'],['Clientes',[...F.clientes].join(', ')||'Todos'],['Líneas',[...F.lineas].map(tc).join(', ')||'Todas'],['Descargado',new Date().toLocaleString('es-CO')]];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(filtros),'Filtros');
+  XLSX.writeFile(wb,`sell_out_exportaciones_${F.anio}.xlsx`);
 }
 
-function buildPromptIntra(tipo,anio){
-  const mc=getMesesIntra(anio);
-  const per=mc.length===12?'año completo':(mc.length?`${MESES_S[MESES.indexOf(mc[0])]}–${MESES_S[MESES.indexOf(mc[mc.length-1])]}`:'sin datos');
-  const serie=getSerieMensual(anio);
-  const valores=mc.map(m=>{const mi=MESES.indexOf(m);return{m:MESES_S[mi],v:serie[mi]||0};});
-  const pLabel=paisFiltroLabel();
-  const base=`Analista de exportaciones. Máximo 2 oraciones en español. Año ${anio}, ${per}${pLabel?` (filtrado a ${pLabel})`:''}. Venta mensual: ${valores.map(x=>x.m+': '+$k(x.v)).join(', ')}.`;
-  const pPaises=PAISES.filter(p=>selPaises.has(p));
-  const prompts={
-    anio:`${base} Describe cómo fue evolucionando el año mes a mes.`,
-    varA:`${base} Analiza la variación mes a mes, destacando los meses con mayor crecimiento y caída.`,
-    mens:`${base} Resume la tendencia general del año.`,
-    pais:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por país en ${anio} (${per}): ${pPaises.map(p=>`${p}: ${$k(getVentaPais(p,anio,mc))}`).join(', ')}. Destaca el mercado principal.`,
-    cli:`Analista de exportaciones. Máximo 2 oraciones en español. Venta por cliente en ${anio} (${per}): ${CLIENTES.map(c=>{const v=getVentaCli(c,anio,mc);return v>0?`${c}: ${$k(v)}`:null;}).filter(Boolean).join(', ')}. Destaca riesgos de concentración.`,
-    ytd:`${base} Describe el acumulado del año a la fecha.`,
-    var:`${base} Explica la variación mes a mes dentro del año, sin comparar con otros años.`,
-    'pais-mens':`Analista de exportaciones. Máximo 2 oraciones en español. Evolución mensual en ${anio} (${per}) por país: ${pPaises.map(p=>{const s=DATA.mensual_paises?.[p]?.[anio]||[];return`${p}: ${mc.map(m=>MESES_S[MESES.indexOf(m)]+' '+$k(s[MESES.indexOf(m)]||0)).join(', ')}`;}).join(' | ')}. Compara cuáles países crecen y cuáles caen mes a mes.`
-  };
-  return prompts[tipo];
+/* ---------- Análisis (local + IA) ---------- */
+function resumenTexto(tab){
+  const A=rowsY(F.anio), B=F.comp!=null?rowsY(F.comp):null;
+  const uA=sum(A,r=>r.u), uB=B?sum(B,r=>r.u):null;
+  const filt=[F.paises.size?'países: '+[...F.paises].map(tc).join(', '):'',F.clientes.size?'clientes: '+[...F.clientes].join(', '):'',F.lineas.size?'líneas: '+[...F.lineas].map(tc).join(', '):''].filter(Boolean).join('; ')||'sin filtros';
+  const ca=groupSum(A.filter(r=>!isHidden(r.c)),'c',r=>r.u), cb=B?groupSum(B.filter(r=>!isHidden(r.c)),'c',r=>r.u):new Map();
+  const mov=[...new Set([...ca.keys(),...cb.keys()])].map(c=>[c,(ca.get(c)||0)-(cb.get(c)||0),ca.get(c)||0,cb.get(c)||0]).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,6);
+  const pa=groupSum(A,'p',r=>r.u), pb=B?groupSum(B,'p',r=>r.u):new Map();
+  const la=groupSum(A.filter(r=>r.l!==SIN),'l',r=>r.u);
+  let t=`Datos de sell out (venta de distribuidores de exportación de Ideace a sus clientes, en USD). Período: ${perLbl()} ${F.anio}${B?` vs mismo período ${F.comp}`:''}. Filtros: ${filt}. `;
+  t+=`Total ${F.anio}: ${usd(uA)}${B?`; ${F.comp}: ${usd(uB)}; variación ${pct(uA/uB-1)}`:''}. `;
+  if(tab!=='lineas'){t+=`Por país (${F.anio}${B?' vs '+F.comp:''}): `+[...pa.keys()].sort((x,y)=>pa.get(y)-pa.get(x)).map(p=>`${tc(p)} ${usd(pa.get(p))}${B?' vs '+usd(pb.get(p)||0):''}`).join('; ')+'. ';
+    t+=`Mayores cambios por cliente: `+mov.map(m=>`${m[0]} ${m[1]>=0?'+':''}${usd(m[1])} (${usd(m[3])} → ${usd(m[2])})`).join('; ')+'. ';}
+  if(tab==='lineas'){t+=`Solo el ${pctPlain(coberturaLinea(A))} de la venta tiene desglose por línea. Venta por línea ${F.anio}: `+[...la.keys()].sort((x,y)=>la.get(y)-la.get(x)).map(l=>`${tc(l)} ${usd(la.get(l))}`).join('; ')+'. ';}
+  return t;
 }
-
-async function genInsight(tipo){
-  const btn=document.getElementById('btn-'+tipo);
-  const box=document.getElementById('ins-'+tipo);
-  if(!btn||!box)return;
-  btn.disabled=true;btn.textContent='...';
-  const textoLocal=box.textContent;
-  box.textContent='Generando análisis con IA...';
-  const anios=ANIOS.filter(a=>selAnios.has(a));
-  let prompt=anios.length<=1?buildPromptIntra(tipo,anios[0]):buildPromptInter(tipo,anios);
-  if((DATA.notas||[]).length)prompt+=` Contexto importante (tenlo en cuenta y no lo interpretes como caída de ventas): ${DATA.notas.join(' ')}`;
-  try{
-    const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
-    const d=await r.json();
-    box.textContent=d.text||textoLocal;
-  }catch(e){
-    box.textContent=textoLocal;
-  }
-  btn.disabled=false;btn.textContent='↺ IA';
+function aiLocal(tab){
+  const el=document.getElementById('ai-'+tab); if(!el||el.dataset.ai==='1')return;
+  const A=rowsY(F.anio), B=F.comp!=null?rowsY(F.comp):null;
+  const uA=sum(A,r=>r.u), uB=B?sum(B,r=>r.u):null;
+  let s=`<b>${usdK(uA)}</b> en ${perLbl()} ${F.anio}`;
+  if(B&&uB){const v=uA/uB-1;s+=`, <b class="delta ${v>=0?'pos':'neg'}">${pct(v)}</b> frente a ${F.comp}.`;
+    const ca=groupSum(A.filter(r=>!isHidden(r.c)),'c',r=>r.u), cb=groupSum(B.filter(r=>!isHidden(r.c)),'c',r=>r.u);
+    const mv=[...new Set([...ca.keys(),...cb.keys()])].map(c=>[c,(ca.get(c)||0)-(cb.get(c)||0)]).sort((a,b)=>b[1]-a[1]);
+    if(mv.length>1&&tab!=='lineas'){const up=mv[0],dn=mv[mv.length-1];
+      if(up[1]>0)s+=` El que más suma: <b>${esc(up[0])}</b> (+${usdK(up[1])}).`;
+      if(dn[1]<0)s+=` El que más resta: <b>${esc(dn[0])}</b> (${usdK(dn[1])}).`;}}
+  else s+='.';
+  if(tab==='lineas'){const la=groupSum(A.filter(r=>r.l!==SIN),'l',r=>r.u);const top=[...la.entries()].sort((a,b)=>b[1]-a[1])[0];if(top)s+=` Línea principal con desglose: <b>${tc(top[0])}</b> (${usdK(top[1])}).`;}
+  el.innerHTML=s;
 }
-
-function showPage(id,btn){
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('vis'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));
-  document.getElementById('pg-'+id).classList.add('vis');btn.classList.add('act');
-  setTimeout(refresh,50);
+async function genAI(tab){
+  const btn=document.getElementById('aib-'+tab), box=document.getElementById('ai-'+tab);
+  btn.disabled=true; const old=box.innerHTML; box.textContent='Analizando con IA…';
+  let prompt='Eres analista comercial de Ideace. Con estos datos, escribe en español un análisis breve (3 a 4 frases, sin viñetas, sin inventar cifras) de lo más relevante y una recomendación concreta. '+resumenTexto(tab);
+  if((D.notas||[]).length)prompt+=' Contexto importante (tenlo en cuenta y no lo interpretes como caída de ventas): '+D.notas.join(' ');
+  prompt+=' Nota: VIDUC y F. Jenny ya no son clientes. Febeca (Binter) es cliente nuevo desde octubre 2026.';
+  try{const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+    const d=await r.json(); if(d.text){box.textContent=d.text;box.dataset.ai='1';}else box.innerHTML=old;}
+  catch(e){box.innerHTML=old+' <span class="k-s2">(No se pudo conectar con la IA.)</span>';}
+  btn.disabled=false;
 }
+// al cambiar filtros, volver al texto automático
+const _refresh=refresh; refresh=function(){document.querySelectorAll('.ai-t').forEach(e=>delete e.dataset.ai);_refresh();};
 
+/* ---------- tema ---------- */
+function toggleTheme(){
+  const cur=document.documentElement.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+  const nx=cur==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme',nx);
+  try{localStorage.setItem('so-theme',nx);}catch(e){}
+  refresh();
+}
+try{const t=localStorage.getItem('so-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>refresh());
+window.addEventListener('resize',()=>{});
 init();
 </script>
 </body>
